@@ -1,4 +1,5 @@
-// $Id$
+//-----------------------------------------------------------------------
+//************************ TPLEIADESAnalysis.cxx ************************
 //-----------------------------------------------------------------------
 //       The GSI Online Offline Object Oriented (Go4) Project
 //         Experiment Data Processing at EE department, GSI

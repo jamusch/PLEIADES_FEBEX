@@ -69,7 +69,7 @@ analysis steps and their classes must be defined here at compile time.
 
 
 ### Event processor class TPLEIADESProc:
-The first Go4 Analysis step  with class TPLEIADESRawProc does unpacking of MBS data from Febex, fills histograms and
+The first Go4 Analysis step  with class TPLEIADESProc does unpacking of MBS data from Febex, fills histograms and
 copies data to the output event structure of class TPLEIADESRawEvent. The main function which is executed for each input event is
 BuildEvent(). 
 

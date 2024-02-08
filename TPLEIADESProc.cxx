@@ -1,6 +1,6 @@
-// N.Kurz, EE, GSI, 15-Jan-2010
-
-//-------------------------------------------------------------
+//----------------------------------------------------------------
+//********************** TPLEIADESProc.cxx ***********************
+//----------------------------------------------------------------
 //        Go4 Release Package v3.03-05 (build 30305)
 //                      05-June-2008
 //---------------------------------------------------------------
@@ -14,6 +14,8 @@
 //----------------------------------------------------------------
 //This software can be used under the license agreements as stated
 //in Go4License.txt file which is part of the distribution.
+//----------------------------------------------------------------
+// N.Kurz, EE, GSI, 15-Jan-2010
 //----------------------------------------------------------------
 #include "TPLEIADESProc.h"
 #include "stdint.h"
@@ -73,6 +75,7 @@ TPLEIADESProc::TPLEIADESProc() : TGo4EventProcessor("Proc")
 {
   cout << "**** TPLEIADESProc: Create instance " << endl;
 }
+
 //***********************************************************
 TPLEIADESProc::~TPLEIADESProc()
 {
@@ -80,6 +83,7 @@ TPLEIADESProc::~TPLEIADESProc()
   l_first  = 0; // JAM 13-Dec-2024: need to reset these flags to renew histogram handles when resubmitted from GUI!
   l_first2 = 0;
 }
+
 //***********************************************************
 // this one is used in standard factory
 TPLEIADESProc::TPLEIADESProc(const char* name) : TGo4EventProcessor(name)
@@ -88,8 +92,11 @@ TPLEIADESProc::TPLEIADESProc(const char* name) : TGo4EventProcessor(name)
   fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
   //printf ("Histograms created \n");  fflush (stdout);
 }
-//-----------------------------------------------------------
-// event function
+
+//***********************************************************
+// Build event is the unpacker function, it reads the MBS event and does stuff with it. Namely calculate quantities,
+// fills histograms, and hopefully exports to a tree.
+// Most histograms are erased with the next word, so are mostly used for online analysis.
 Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
 {
   // called by framework for each mbs input event.
@@ -101,197 +108,140 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
 
   fOutEvent->SetValid(kFALSE); // initialize next output as not filled, i.e.it is only stored when something is in
 
+  //-----------------------------------------------------------
+  // object definitions. these objects will be used in reading the data stream.
 
+  UInt_t	l_i, l_j, l_k, l_l;		// counters
+  Double_t	l_value=0;			// placeholder for filling histograms
+  
+  uint32_t	*pl_se_dat;			// pointer to data word from MBS sub event 
+  uint32_t	*pl_tmp;			// temporary pointer for manipulation
 
-  UInt_t         l_i, l_j, l_k, l_l;
-  uint32_t      *pl_se_dat;
-  uint32_t      *pl_tmp;
+  UInt_t	l_dat_len;  			// data length
+  UInt_t	l_dat_len_byte;  		// data length in bytes
 
-  UInt_t         l_dat_len;  
-  UInt_t         l_dat_len_byte;  
+  UInt_t	l_dat;				// data word
+  UInt_t	l_trig_type;			// trigger type. 1 = physics event. We don't use other trigger types.
+  UInt_t	l_trig_type_triva;		// another trigger type, not sure why we need two??
+  UInt_t	l_sfp_id;			// SFP ID (ie FEBEX crate)
+  UInt_t	l_feb_id;			// FEBEX card ID
+  UInt_t	l_cha_id;			// FEBEX Channel ID
+  UInt_t	l_n_hit;
+  //UInt_t	l_hit_id;
+  UInt_t	l_hit_cha_id;
+  Long64_t	ll_time;
+  Long64_t	ll_trg_time;
+  //Long64_t	ll_hit_time;
+  UInt_t	l_ch_hitpat   [MAX_SFP][MAX_SLAVE][N_CHA];  
+  UInt_t	l_ch_hitpat_tr[MAX_SFP][MAX_SLAVE][N_CHA];  
+  UInt_t	l_first_trace [MAX_SFP][MAX_SLAVE];
 
-  UInt_t         l_dat;
-  UInt_t         l_trig_type;
-  UInt_t         l_trig_type_triva;
-  UInt_t         l_sfp_id;
-  UInt_t         l_feb_id;
-  UInt_t         l_cha_id;
-  UInt_t         l_n_hit;
-  //UInt_t         l_hit_id;
-  UInt_t         l_hit_cha_id;
-  Long64_t       ll_time;
-  Long64_t       ll_trg_time;
-  //Long64_t       ll_hit_time;
-  UInt_t         l_ch_hitpat   [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_ch_hitpat_tr[MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_first_trace [MAX_SFP][MAX_SLAVE];
+  UInt_t	l_cha_head;  
+  UInt_t	l_cha_size;
+  UInt_t	l_trace_head;
+  UInt_t	l_trace_size;
+  UInt_t	l_trace_trail;
 
-  UInt_t         l_cha_head;  
-  UInt_t         l_cha_size;
-  UInt_t         l_trace_head;
-  UInt_t         l_trace_size;
-  UInt_t         l_trace_trail;
+  UInt_t	l_spec_head;
+  UInt_t	l_spec_trail;
+  UInt_t	l_n_hit_in_cha;
+  UInt_t	l_only_one_hit_in_cha;
+  UInt_t	l_more_than_1_hit_in_cha;  
+  UInt_t	l_hit_time_sign;
+   Int_t	l_hit_time;
+  UInt_t	l_hit_cha_id2;
+  UInt_t	l_fpga_energy_sign;
+   Int_t	l_fpga_energy;
 
-  UInt_t         l_spec_head;
-  UInt_t         l_spec_trail;
-  UInt_t         l_n_hit_in_cha;
-  UInt_t         l_only_one_hit_in_cha;
-  UInt_t         l_more_than_1_hit_in_cha;  
-  UInt_t         l_hit_time_sign;
-   Int_t         l_hit_time;
-  UInt_t         l_hit_cha_id2;
-  UInt_t         l_fpga_energy_sign;
-   Int_t         l_fpga_energy;
+  UInt_t	l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];  
+  UInt_t	l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 
+  UInt_t	l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];  
+  UInt_t	l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA]; 
 
-  UInt_t         l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 
-  UInt_t         l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA]; 
+  UInt_t	l_dat_fir;
+  UInt_t	l_dat_sec;
 
-  UInt_t         l_dat_fir;
-  UInt_t         l_dat_sec;
+  static UInt_t	l_evt_ct=0;
+  static UInt_t	l_evt_ct_phys=0;
 
-  static UInt_t  l_evt_ct=0;
-  static UInt_t  l_evt_ct_phys=0;
+  UInt_t	l_pol = 0;
 
-  UInt_t         l_pol = 0;
+  UInt_t	l_bls_start = BASE_LINE_SUBT_START;
+  UInt_t	l_bls_stop  = BASE_LINE_SUBT_START + BASE_LINE_SUBT_SIZE; // 
+  Double_t	f_bls_val=0.;
 
-  UInt_t          l_bls_start = BASE_LINE_SUBT_START;
-  UInt_t          l_bls_stop  = BASE_LINE_SUBT_START + BASE_LINE_SUBT_SIZE; // 
-  Double_t       f_bls_val=0.;
-
-  #ifdef IVAN
-  Real_t r_ivan_f_prev; 
-  Real_t r_ivan_f; 
-  #endif // IVAN
-
-  #ifdef FFT_GSI
-   #ifdef USE_MBS_PARAM
-    Double_t f_f_real[MAX_TRACE_SIZE];
-    Double_t f_f_imag[MAX_TRACE_SIZE];
-   #else
-    Double_t f_f_real[TRACE_SIZE];
-    Double_t f_f_imag[TRACE_SIZE];
-   #endif // USE_MBS_PARAM  
-  #endif // FFT_GSI
-  #ifdef TEST_FFT_GSI
-   #define TWOPI  Double_t (3.14159265 * 2.)
-   #ifdef USE_MBS_PARAM
-    Double_t f_test_real[MAX_TRACE_SIZE];
-    Double_t f_test_imag[MAX_TRACE_SIZE];
-   #else
-    Double_t f_test_real[TRACE_SIZE];
-    Double_t f_test_imag[TRACE_SIZE];
-   #endif // USE_MBS_PARAM  
-  #endif // TEST_FFT_GSI
-
-  #ifdef APFEL_INT
-  Double_t       f_sum_a;
-  Double_t       f_sum_tr[TRACE_SIZE];
-  #endif // APFEL_INT
+  
+  //-----------------------------------------------------------
+  // special function objects. only initialised if defined in header.
 
   #ifdef TRAPEZ
-   Int_t          l_A1;
-   Int_t          l_A2;
-   UInt_t          l_gap = TRAPEZ_N_GAP; // TRAPEZ gap    size
-   UInt_t          l_win = TRAPEZ_N_AVG; // TRAPEZ window size
+   Int_t	l_A1, l_A2;			// TRAPEZ filter counters
+   UInt_t	l_gap = TRAPEZ_N_GAP; 	// TRAPEZ gap size
+   UInt_t	l_win = TRAPEZ_N_AVG; 	// TRAPEZ window size
   #endif // TRAPEZ
 
   #ifdef MWD
-   UInt_t          l_mwd_wind  = MWD_WIND;
-   UInt_t          l_mwd_avg   = MWD_AVG;
-   Double_t       f_rev_tau   = 1. / (Double_t) MWD_TAU;
-   Int_t          l_tau_sum=0;
-   //Double_t        f_tau_sum=0.;
-   Double_t        f_sum=0.;
-   Double_t        f_sum_e=0.;
+   UInt_t	l_mwd_wind  = MWD_WIND;
+   UInt_t	l_mwd_avg   = MWD_AVG;
+   Double_t	f_rev_tau   = 1. / (Double_t) MWD_TAU;
+   Int_t	l_tau_sum=0;
+   //Double_t	f_tau_sum=0.;
+   Double_t	f_sum=0.;
+   Double_t	f_sum_e=0.;
    #ifdef USE_MBS_PARAM
-    Double_t        f_mwd[MAX_TRACE_SIZE]; 
-    Double_t        f_avg[MAX_TRACE_SIZE];
+    Double_t	f_mwd[MAX_TRACE_SIZE]; 
+    Double_t	f_avg[MAX_TRACE_SIZE];
    #else
-    Double_t        f_mwd[TRACE_SIZE]; 
-    Double_t        f_avg[TRACE_SIZE];
+    Double_t	f_mwd[TRACE_SIZE]; 
+    Double_t	f_avg[TRACE_SIZE];
    #endif // MWD 
   #endif // MWD
 
-  #ifdef APFEL_INT
-   Int_t          l_A1_a;
-   Int_t          l_A2_a;
-   UInt_t          l_gap_a = A_TRAPEZ_N_GAP; // TRAPEZ gap    size
-   UInt_t          l_win_a = A_TRAPEZ_N_AVG; // TRAPEZ window size
-  #endif // APFEL_INT
-
-  Int_t       l_fpga_filt_on_off;
-  //Int_t       l_fpga_filt_mode;
-  Int_t       l_dat_trace;
-  Int_t       l_dat_filt;
-  Int_t       l_filt_sign;
+  Int_t		l_fpga_filt_on_off;
+  //Int_t	l_fpga_filt_mode;
+  Int_t		l_dat_trace;
+  Int_t		l_dat_filt;
+  Int_t		l_filt_sign;
 
 
-#ifdef FFT_GSI
-  Double_t d_re;
-  Double_t d_im;
-  Double_t d_am;
-  Double_t d_ph;
-#endif
 
-  Double_t value=0;
+  //-----------------------------------------------------------
+  // MBS data stream readout. Here the function starts calling basic Go4 functions to read data words, etc.
 
-  TGo4MbsSubEvent* psubevt;
-
-
-  fInput = (TGo4MbsEvent* ) GetInputEvent();
+  fInput = (TGo4MbsEvent* ) GetInputEvent();	// event is called
   if(fInput == 0)
   {
     cout << "AnlProc: no input event !"<< endl;
     return kFALSE;
   }
 
-
   //  JAM 12-12-2023 take general event number from mbs event header. Note that subsystem sequence may differ:
   fOutEvent->fSequenceNumber = fInput->GetCount();
 
-
+  // MBS trigger counters are incremeneted, but also not used?
   l_trig_type_triva = fInput->GetTrigger();
   if (l_trig_type_triva == 1)
   {
      l_evt_ct_phys++;
   }
-
-  //if(fInput->GetTrigger() > 11)
-  //{
-  //cout << "**** TPLEIADESProc: Skip trigger event"<<endl;
-  //return kFALSE;
-  //}
-  // first we fill the arrays fCrate1,2 with data from MBS source
-  // we have up to two subevents, crate 1 and 2
-  // Note that one has to loop over all subevents and select them by
-  // crate number:   psubevt->GetSubcrate(),
-  // procid:         psubevt->GetProcid(),
-  // and/or control: psubevt->GetControl()
-  // here we use only crate number
-
   l_evt_ct++;
 
+  // MBS allows for multiple subevents. We don't use sub events, so machinery has been removed for brevity.
+  // See TFeb3Full example or CsISiPHOS_FEBEX setup from N. Kurz for sub event machinery. 
+  TGo4MbsSubEvent* psubevt;
+
   fInput->ResetIterator();
-  //while((psubevt = fInput->NextSubEvent()) != 0) // loop over subevents
-  //{
-
   psubevt = fInput->NextSubEvent(); // only one subevent    
-  
-  //printf ("         psubevt: 0x%x \n", (UInt_t)psubevt); fflush (stdout);
-  //printf ("-------------------------------next event-----------\n");
-  //sleep (1);
 
+  // next we extract data word for subevent and prepare properties
+  // GetDataField is pointer to subevent data. pl_tmp++ increments pointer to next word in stream.
   pl_se_dat = (uint32_t *)psubevt->GetDataField();
   l_dat_len = psubevt->GetDlen();
   l_dat_len_byte = (l_dat_len - 2) * 2; 
-  //printf ("sub-event data size:         0x%x, %d \n", l_dat_len, l_dat_len);
-  //printf ("sub-event data size (bytes): 0x%x, %d \n", l_dat_len_byte, l_dat_len_byte);
-  //fflush (stdout);
 
   pl_tmp = pl_se_dat;
 
+  // checks for error in data word
   if (pl_se_dat == (UInt_t*)0)
   {
     printf (" ERROR>> ");
@@ -307,9 +257,10 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     goto bad_event;
   }
 
+  // checks WR time stamp. 5 first 32 bits must be white rabbit time stamp
   #ifdef WR_TIME_STAMP
-  // 5 first 32 bits must be white rabbit time stamp
   l_dat = *pl_tmp++;
+  // sub system ID commented because timesorter means we have 3 IDs
 /*
   if (l_dat != SUB_SYSTEM_ID)
   {
@@ -322,7 +273,6 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     goto bad_event;
   }
 */
-
   l_dat = (*pl_tmp++) >> 16;
   if (l_dat != TS__ID_L16)
   {
@@ -349,9 +299,9 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   }
   #endif // WR_TIME_STAMP
 
+  //-----------------------------------------------------------
   // extract analysis parameters from MBS data 
-  // ATTENTION:  these data is only present if WRITE_ANALYSIS_PARAM 
-  //             is enabled in corresponding f_user.c 
+  // ATTENTION:  these data is only present if WRITE_ANALYSIS_PARAM is enabled in corresponding f_user.c 
   // WRITE_ANALYSIS_PARAM (in mbs) and USE_MBS_PARAM (in go4) must be used always together 
 
   #ifdef USE_MBS_PARAM
@@ -364,26 +314,21 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   }
   #endif
 
-  if (l_first == 0)
+  //-----------------------------------------------------------
+  // for first event, make histograms
+
+  if (l_first == 0)	// l_first defined as zero, so triggered if first event
   {
     l_first = 1;
     #ifdef USE_MBS_PARAM
     printf ("debug: 0x%x, 0x%x, 0x%x \n", l_slaves, l_trace, l_e_filt);
     fflush (stdout);
     #endif
-    f_make_histo (0);
+    f_make_histo (0);	// calls make histograms function
   }
 
-  #ifdef TEST_FFT_GSI
-  h_test->Reset ("");
-  h_test_fft_real->Reset ("");
-  h_test_fft_imag->Reset ("");
-  for (l_l=0; l_l<l_tr_size; l_l++)
-  {
-    f_test_real[l_l] = 0.;
-    f_test_imag[l_l] = 0.;
-  }  
-  #endif // TEST_FFT_GSI
+  //----------------------------------------------------------
+  // reset arrays before processing new data
 
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
@@ -398,20 +343,6 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           h_trapez_fpga [l_i][l_j][l_k]->Reset ("");
           l_ch_hitpat   [l_i][l_j][l_k] = 0;  
           l_ch_hitpat_tr[l_i][l_j][l_k] = 0;
-          #ifdef IVAN
-          h_ivan_f[l_i][l_j][l_k]->Reset ("");
-          #endif // IVAN
-          #ifdef FFT_GSI
-          h_fft_real[l_i][l_j][l_k]->Reset ("");
-          h_fft_imag[l_i][l_j][l_k]->Reset ("");
-          h_fft_ampl[l_i][l_j][l_k]->Reset ("");
-          h_fft_phas[l_i][l_j][l_k]->Reset ("");
-          for (l_l=0; l_l<l_tr_size; l_l++)
-          {
-            f_f_real[l_l] = 0.;
-            f_f_imag[l_l] = 0.;
-          }  
-          #endif // FFT_GSI
           #ifdef TRAPEZ
           h_trapez_f[l_i][l_j][l_k]->Reset ("");
           #endif // TRAPEZ
@@ -424,10 +355,6 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
             f_avg[l_l] = 0.;
           }  
           #endif // MWD
-          #ifdef APFEL_INT
-          h_sum_trace [l_i][l_j][l_k]->Reset ("");
-          h_apf_trap_f[l_i][l_j][l_k]->Reset ("");
-          #endif // APFEL_INT
           l_trapez_e_found[l_i][l_j][l_k] = 0;
           l_fpga_e_found  [l_i][l_j][l_k] = 0;
           l_trapez_e      [l_i][l_j][l_k] = 0;
@@ -440,28 +367,28 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     }
   }
  
+  //----------------------------------------------------------
+  // while loops reads words of subevent and processes information
+  //----------------------------------------------------------
   while ( (pl_tmp - pl_se_dat) < (l_dat_len_byte/4) )
   {
-    //sleep (1);
-    //printf (" begin while loop \n");  fflush (stdout); 
-    l_dat = *pl_tmp++;   // must be padding word or channel header
-    //printf ("l_dat 0x%x \n", l_dat);
-    if ( (l_dat & 0xfff00000) == 0xadd00000 ) // begin of padding 4 byte words
+    l_dat = *pl_tmp++;	// data word must be padding word or channel header
+    if ( (l_dat & 0xfff00000) == 0xadd00000 )	// check if beginning of padding 4 byte words
     {
-      //printf ("padding found \n");
       l_dat = (l_dat & 0xff00) >> 8;
       pl_tmp += l_dat - 1;  // increment by pointer by nr. of padding  4byte words 
     }
-    else if ( (l_dat & 0xff) == 0x34) //channel header
+    else if ( (l_dat & 0xff) == 0x34) //if not padding, check for channel header
     {
+      // reads header to extract channel identifiers
       l_cha_head = l_dat;
-      //printf ("l_cha_head: 0x%x \n", l_cha_head);
 
       l_trig_type = (l_cha_head & 0xf00)      >>  8;
       l_sfp_id    = (l_cha_head & 0xf000)     >> 12;
       l_feb_id    = (l_cha_head & 0xff0000)   >> 16;
       l_cha_id    = (l_cha_head & 0xff000000) >> 24;
  
+      // check SFP, FEBEX card, and channel IDs are within expected range
       if ((l_sfp_id > (MAX_SFP-1)) || (l_sfp_id < 0))
       {
         printf ("ERROR>> l_spf_id: %d \n", l_sfp_id);  fflush (stdout);
@@ -481,21 +408,15 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
         }
       }
 
+      // check polarity of FEBEX card
       l_pol = (l_pola[l_sfp_id] >> l_feb_id) & 0x1;
 
-      if ( ((l_cha_head & 0xff) >> 0) != 0x34 )
+      //----------------------------------------------------------
+      // reads out special channel 0xff for E,t from FPGA
+      if ( (l_cha_head & 0xff000000) == 0xff000000)
       {
-        printf ("ERROR>> channel header type is not 0x34 \n");
-        goto bad_event;
-      }
-
-      if ( (l_cha_head & 0xff000000) == 0xff000000) // special channel 0xff for E,t from fpga 
-      {
-        //printf ("special channel \n");
         // special channel data size
         l_cha_size = *pl_tmp++;
-        //printf ("l_cha_head: 0x%x \n", l_cha_head); sleep (1);
-        //printf ("l_cha_size: 0x%x \n", l_cha_size);
 
         l_spec_head = *pl_tmp++;
         if ( (l_spec_head & 0xff000000) != 0xaf000000)
@@ -516,7 +437,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
         { 
           h_hitpat[l_sfp_id][l_feb_id]->Fill (-1, 1);
 
-          for (l_i=0; l_i<l_n_hit; l_i++)
+          for (l_i=0; l_i<l_n_hit; l_i++)	// stuff happens based on n_hits
           {
             l_dat = *pl_tmp++;      // hit time from fpga (+ other info)
             l_hit_cha_id             = (l_dat & 0xf0000000) >> 28;
@@ -527,21 +448,20 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
  
             l_ch_hitpat[l_sfp_id][l_feb_id][l_hit_cha_id] = l_n_hit_in_cha;            
             
-            if (l_more_than_1_hit_in_cha == 1)
+            if (l_more_than_1_hit_in_cha == 1)	// more than 1 hit, print alert but don't read data
             {
               l_more_1_hit_ct++;
               printf ("%d More than 1 hit found for SFP: %d FEBEX: %d CHA: %d:: %d \n",
                       l_more_1_hit_ct, l_sfp_id, l_feb_id, l_hit_cha_id, l_n_hit_in_cha);
               fflush (stdout);
             }
-            
 
-            if ((l_more_than_1_hit_in_cha == 1) && (l_only_one_hit_in_cha == 1))
+            if ((l_more_than_1_hit_in_cha == 1) && (l_only_one_hit_in_cha == 1))	// nonsense edge case
             {
               printf ("ERROR>> haeh? \n"); fflush (stdout);
             }  
 
-            if (l_only_one_hit_in_cha == 1)
+            if (l_only_one_hit_in_cha == 1)	// if just 1 hit, then fill histograms with FPGA info
             {
               l_hit_time_sign = (l_dat & 0x8000) >> 15;
               l_hit_time = l_dat & 0x7ff;     // positive := AFTER  trigger, relative to trigger time
@@ -552,7 +472,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               //printf ("cha: %d, hit fpga time:  %d \n", l_hit_cha_id,  l_hit_time);
               h_trgti_hitti[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_hit_time);
             }
-            h_hitpat[l_sfp_id][l_feb_id]->Fill (l_hit_cha_id, l_n_hit_in_cha);
+            h_hitpat[l_sfp_id][l_feb_id]->Fill (l_hit_cha_id, l_n_hit_in_cha);	// fill hit pattern histogram
             
             l_dat = *pl_tmp++;      // energy from fpga (+ other info)
             l_hit_cha_id2  = (l_dat & 0xf0000000) >> 28;
@@ -567,7 +487,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               goto bad_event;
             }
 
-            if (l_only_one_hit_in_cha == 1)
+            if (l_only_one_hit_in_cha == 1)	// again, only read out if single hit
             {
               l_fpga_energy_sign = (l_dat & 0x800000) >> 23;
               l_fpga_energy      =  l_dat & 0x7fffff;      // positiv
@@ -576,13 +496,13 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
                 l_fpga_energy = l_fpga_energy * (-1);     // negative
               }
               //printf ("cha: %d, hit fpga energy: %d \n", l_hit_cha_id2,  l_fpga_energy);
-              h_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_fpga_energy);
-              l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;
-              l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy; 
+              h_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_fpga_energy);	// fill temp energy hist for scope
+              l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;		// fill if FPGA energy found
+              l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy; 	// fill value for use later
             }
           }
         }
-        l_spec_trail = *pl_tmp++;
+        l_spec_trail = *pl_tmp++;	// checks for final trailing word to close subevent
         if ( (l_spec_trail & 0xff000000) != 0xbf000000)
         {  
           printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n",
@@ -591,7 +511,8 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           //sleep (1); 
         }
       }
-      else // real channel 
+      //----------------------------------------------------------
+      else // if not special, must be real channel 
       {
         //printf ("real channel \n");
         // channel data size
@@ -606,6 +527,8 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           goto bad_event; 
         }
 
+	// FGPA filter is a mode that records the filter output of the FPGA, presumably set through f_user and
+	// used for debugging the FPGA filter setup
         l_fpga_filt_on_off = (l_trace_head & 0x80000) >> 19;
         //l_fpga_filt_mode   = (l_trace_head & 0x40000) >> 18;
         //printf ("fpga filter on bit: %d, fpga filter mode: %d \n", l_fpga_filt_on_off, l_fpga_filt_mode);
@@ -625,8 +548,8 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           // now trace
           l_trace_size = (l_cha_size/4) - 2;     // in longs/32bit
 
-          //das folgende kommentierte noch korrigieren!
-          //falls trace + filter trace: cuttoff bei 2000 slices, da 4fache datenmenge!
+          //correct the following comments!
+          //falls trace + filter trace: cuttoff at 2000 slices, since 4 times the amount of data!
 
           //if (l_trace_size != (TRACE_SIZE>>1))
           //{
@@ -634,11 +557,13 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           //  goto bad_event;
           //}
 
+  	  //----------------------------------------------------------
+	  // read out traces and fill histograms
           if (l_fpga_filt_on_off == 0) // only trace. no fpga filter trace data
           {
             for (l_l=0; l_l<l_trace_size; l_l++)   // loop over traces 
             {
-              // disentangle data
+              // disentangle data. for some reason, the trace is split in half and then filled separately
               l_dat_fir = *pl_tmp++;
               l_dat_sec = l_dat_fir;
 
@@ -669,7 +594,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               l_tr[l_l*2]   = l_dat_fir;
               l_tr[l_l*2+1] = l_dat_sec;
             }
-            l_trace_size = l_trace_size * 2; //??? JAM
+            l_trace_size = l_trace_size * 2; // trace size needs to be doubled as we worked with halves
           }
 
           if (l_fpga_filt_on_off == 1) // trace AND fpga filter data
@@ -700,6 +625,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               l_dat_filt  = l_dat_filt   & 0x7fffff;
               if (l_filt_sign == 1) {l_dat_filt = l_dat_filt * -1;}
 
+	      // both trace and FGPA filter output are recorded this time
               h_trace      [l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, l_dat_trace);
               h_trapez_fpga[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, l_dat_filt);
 
@@ -708,6 +634,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
             l_trace_size = l_trace_size >> 1;
           }
 
+  	  //----------------------------------------------------------
           // find base line value of trace and correct it to baseline 0
           f_bls_val = 0.;
           for (l_l=l_bls_start; l_l<l_bls_stop; l_l++) 
@@ -722,46 +649,14 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
             //h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, f_tr_blr[l_l]);
           }
 
-          #ifdef IVAN
-          r_ivan_f_prev = 0;
-          for (l_l=1; l_l<l_trace_size; l_l++)   // loop over traces 
-          {
-            r_ivan_f = (C1 * l_tr[l_l]) - (C2 * l_tr[l_l-1]) + (C3 * r_ivan_f_prev);
-            h_ivan_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, r_ivan_f);
-            r_ivan_f_prev = r_ivan_f;
-          }
-          #endif //IVAN
-
-          #ifdef FFT_GSI
-          for (l_l=0; l_l<l_tr_fft_si; l_l++)
-          {
-            f_f_real[l_l] = (Double_t)l_tr[l_l];
-          }
-          fft_gsi (1, l_pct, f_f_real, f_f_imag); 
-          for (l_l=0; l_l<l_tr_fft_si; l_l++)
-          {
-            h_fft_real[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_f_real[l_l]);
-            h_fft_imag[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_f_imag[l_l]);
-
-            d_re = h_fft_real[l_sfp_id][l_feb_id][l_cha_id]->GetBinContent (l_l);
-            d_im = h_fft_imag[l_sfp_id][l_feb_id][l_cha_id]->GetBinContent (l_l);
-            d_am = sqrt (pow (d_re, 2) + pow (d_im, 2));
-            h_fft_ampl[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, d_am);
-            d_ph = 0.;
-            if (d_re != 0.)
-            { 
-              d_ph = atan (d_im/d_re);
-            }
-            h_fft_phas[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, d_ph);
-          }      
-          #endif // FFT_GSI
-
+          //----------------------------------------------------------
+	  // run TRAPEZ filter on trace and fill histograms
           #ifdef TRAPEZ
           l_A1 = 0;
           l_A2 = 0;
           for (l_l=(l_gap+l_win); l_l<l_trace_size; l_l++)   // loop over traces 
           {
-            if (l_l < (l_gap + (2*l_win)))
+            if (l_l < (l_gap + (2*l_win)))	// if pos before full window on screen, don't fill hist yet
             {
               //l_A1 += l_tr[l_l] - l_tr[l_l-l_win];
               l_A1 += l_tr[l_l];
@@ -769,7 +664,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               //printf ("index: %d, A1: %d, A2 %d, A1-A2: %d, norm %d  \n", l_l, l_A1, l_A2, l_A1-l_A2, l_win);   
               //printf ("(A1-A2)/norm: %d, %f \n", (l_A1 - l_A2) / l_win, (Real_t)(l_A1 - l_A2) / (Real_t) l_win); 
             }
-            else
+            else	// now full window on screen, fill evaluate TRAPEZ and fill hist
             {
               l_A1 += l_tr[l_l]  - l_tr[l_l-l_win];
               l_A2 += l_tr[l_l-l_win-l_gap] - l_tr[l_l-(2*l_win)-l_gap]; 
@@ -785,11 +680,11 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           //sleep (1);
           #endif // TRAPEZ
 
-          // find peak and fill histogram
+          // find peaks and valleys in trace and fill histogram
           h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
           h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
 
-          #ifdef TRAPEZ
+          #ifdef TRAPEZ	  // determine energy and fill histograms from TRAPEZ filter
           if (l_pol == 1) // negative signals
           { 
             h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
@@ -804,7 +699,9 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
           }
           #endif // TRAPEZ
 
-#ifdef MWD
+          //----------------------------------------------------------
+	  // run MWD filter on trace and fill histograms
+	  #ifdef MWD
           l_tau_sum = 0;
           for (l_l=1; l_l<l_mwd_wind; l_l++)
           {
@@ -835,6 +732,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
             }
           }
 
+	  // fill energy histograms for MWD from peaks/valleys
           if (l_pol == 1) // negative signals
           { 
             h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]
@@ -846,66 +744,12 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
              ->Fill (h_mwd_a[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
           }
           #endif // MWD
-
-          #ifdef APFEL
-          if (l_pol == 1) // negative signals
-          { 
-            h_apfel_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
-          }
-          if (l_pol == 0) // positive signals
-          { 
-            h_apfel_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
-          }
-
-          #ifdef APFEL_INT
-          f_sum_a = 0.; 
-          for (l_l=0; l_l<l_trace_size; l_l++)
-          {
-            //f_sum_a += (Double_t)h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetBinContent (l_l+1);
-            f_sum_a += f_tr_blr[l_l]; 
-            f_sum_tr[l_l] = f_sum_a;
-            h_sum_trace[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_sum_a);
-          }
-
-          l_A1_a = 0;
-          l_A2_a = 0;
-          for (l_l=(l_gap_a+l_win_a); l_l<l_trace_size; l_l++)   // loop over traces 
-          {
-            if (l_l < (l_gap_a + (2*l_win_a)))
-            {
-              l_A1_a += f_sum_tr[l_l];
-              l_A2_a += f_sum_tr[l_l-l_win_a-l_gap_a];
-            }
-            else
-            {
-              l_A1_a += f_sum_tr[l_l]  - f_sum_tr[l_l-l_win_a];
-              l_A2_a += f_sum_tr[l_l-l_win_a-l_gap_a] - f_sum_tr[l_l-(2*l_win_a)-l_gap_a]; 
-        
-              if (l_l < (l_trace_size -(2*l_win_a)-l_gap_a))
-              {
-                h_apf_trap_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1_a - l_A2_a) / (Real_t) l_win_a);
-              }
-            }     
-          }
-          if (l_pol == 1) // negative signals
-          { 
-            //h_apf_trap_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_apf_trap_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
-            h_apf_trap_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_apf_trap_f[l_sfp_id][l_feb_id][l_cha_id]->GetBinContent (700));
-          }
-          if (l_pol == 0) // positive signals
-          { 
-            //h_apf_trap_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_apf_trap_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
-            h_apf_trap_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_apf_trap_f[l_sfp_id][l_feb_id][l_cha_id]->GetBinContent (700));
-          }
-          #endif // APFEL_INT
-
-          #endif // APFEL
         }
 
         // jump over trace
         //pl_tmp += (l_cha_size >> 2) - 2;          
             
-        // trace trailer
+        // check trace trailer to exit subevent correctly
         //printf ("trace trailer \n");
         l_trace_trail = *pl_tmp++;
         if ( ((l_trace_trail & 0xff000000) >> 24) != 0xbb)
@@ -916,13 +760,19 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
         }
       }
     }
-    else
+    else	// if data word not padding or channel header, throw error
     {
       printf ("ERROR>> data word neither channel header nor padding word \n");
     }       
   }
+  //----------------------------------------------------------
+  // end of subevent data word while loop. all traces and histograms now filled for this event.
+  //----------------------------------------------------------
 
 
+  //----------------------------------------------------------
+  // array to hist filling -- values stored in float arrays are filled into 1D hists for each channel
+  //----------------------------------------------------------
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
     if (l_sfp_slaves[l_i] != 0)
@@ -936,14 +786,14 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
 
           if ( (l_trapez_e_found[l_i][l_j][l_k] == 1) && (l_fpga_e_found[l_i][l_j][l_k] == 1))
           {
-            value=0;
+            l_value=0;
             if(l_trapez_e[l_i][l_j][l_k])
-              value=(Double_t)l_fpga_e[l_i][l_j][l_k] / (Double_t)l_trapez_e[l_i][l_j][l_k];
-            h_corr_e_fpga_trapez[l_i][l_j][l_k]->Fill(value);
-            //printf ("Energy FPGA / Energy Trace: %1.10f \n",value);
+              l_value=(Double_t)l_fpga_e[l_i][l_j][l_k] / (Double_t)l_trapez_e[l_i][l_j][l_k];
+            h_corr_e_fpga_trapez[l_i][l_j][l_k]->Fill(l_value);
+            //printf ("Energy FPGA / Energy Trace: %1.10f \n",l_value);
 
             // JAM 12-12-2023: EXAMPLE -put evaluated energy for each channel to output event here:
-            fOutEvent->fE_FPGA_Trapez[l_i][l_j][l_k]=value;
+            fOutEvent->fE_FPGA_Trapez[l_i][l_j][l_k]=l_value;
             fOutEvent->SetValid(kTRUE);
           }
         }
@@ -951,36 +801,11 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     }
   }
 
-  #ifdef TEST_FFT_GSI
-  for (l_l=1; l_l<l_tr_fft_si; l_l++) 
-  {
-    
-    if (l_l < 950 || l_l > 1000)
-    {
-      f_test_real[l_l] = 0.;
-    }
-    else
-    {
-      f_test_real[l_l] = 100.;
-    }
- 
 
-    //f_test_real[l_l] = cos (4 * TWOPI * ((Double_t)l_l/(Double_t)l_tr_fft_si));
-    f_test_imag[l_l] = 0.;
-    h_test->Fill (l_l, f_test_real[l_l]);
-  }
-  fft_gsi (1, 11, f_test_real, f_test_imag); 
-  for (l_l=1; l_l<l_tr_fft_si; l_l++)  
-  { 
-    h_test_fft_real->Fill (l_l, f_test_real[l_l]);
-    h_test_fft_imag->Fill (l_l, f_test_imag[l_l]);
-  }      
-  #endif // TEST_FFT_GSI
-
-
+  //----------------------------------------------------------
   // JAM 12/2023: copy here values to output event for optional ROOT tree storage
-#ifdef TPLEIADES_FILL_TRACES
-
+  //----------------------------------------------------------
+  #ifdef TPLEIADES_FILL_TRACES
   for (l_i=0; l_i<MAX_SFP; l_i++)
    {
      if (l_sfp_slaves[l_i] != 0)
@@ -992,125 +817,48 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
 
              for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
-                 value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-                 fOutEvent->fTrace[l_i][l_j][l_k].push_back(value);
+                 l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
+                 fOutEvent->fTrace[l_i][l_j][l_k].push_back(l_value);
              }
 
              for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
-               value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
-               fOutEvent->fTraceBLR[l_i][l_j][l_k].push_back(value);
+               l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
+               fOutEvent->fTraceBLR[l_i][l_j][l_k].push_back(l_value);
              }
 
              for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
-               value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-               fOutEvent->fTrapezFPGA[l_i][l_j][l_k].push_back(value);
+               l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
+               fOutEvent->fTrapezFPGA[l_i][l_j][l_k].push_back(l_value);
              }
          }// l_k
        }// l_j
      }// if (l_sfp_slaves
    } // l_i
   fOutEvent->SetValid(kTRUE);
-#endif
+  #endif
   //printf ("check next event \n"); sleep (1);
 
-bad_event:
+  bad_event:
 
-// JAM 12-Dec-2023: Added slow motion (eventwise step mode) as example how to use parameter container flag
-if (fPar->fSlowMotion)
-{
-  Int_t evnum = fInput->GetCount();
-    GO4_STOP_ANALYSIS_MESSAGE(
-      "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
-}
+  //----------------------------------------------------------
+  // JAM 12-Dec-2023: Added slow motion (eventwise step mode) as example how to use parameter container flag
+  //----------------------------------------------------------
+  if (fPar->fSlowMotion)
+  {
+    Int_t evnum = fInput->GetCount();
+      GO4_STOP_ANALYSIS_MESSAGE(
+        "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+  }
 
 
 
   return kTRUE;
 }
 
-//--------------------------------------------------------------------------------
-
-/*
-   This computes an in-place complex-to-complex FFT_GSI 
-   x and y are the real and imaginary arrays of 2^m points.
-   dir =  1 gives forward transform
-   dir = -1 gives reverse transform 
-*/
-
-void TPLEIADESProc:: fft_gsi (Int_t dir, Int_t m, Double_t *x, Double_t *y)
-{
-  long n,i,i1,j,k,i2,l,l1,l2;
-  double c1,c2,tx,ty,t1,t2,u1,u2,z;
-
-  /* Calculate the number of points */
-  n = 1;
-  for (i=0;i<m;i++) 
-    n *= 2;
-
-  /* Do the bit reversal */
-  i2 = n >> 1;
-  j = 0;
-  for (i=0;i<n-1;i++) {
-    if (i < j) {
-      tx = x[i];
-      ty = y[i];
-      x[i] = x[j];
-      y[i] = y[j];
-      x[j] = tx;
-      y[j] = ty;
-    }
-    k = i2;
-    while (k <= j) {
-      j -= k;
-      k >>= 1;
-    }
-    j += k;
-  }
-
-  /* Compute the FFT_GSI */
-  c1 = -1.0; 
-  c2 = 0.0;
-  l2 = 1;
-  for (l=0;l<m;l++) {
-    l1 = l2;
-    l2 <<= 1;
-    u1 = 1.0; 
-    u2 = 0.0;
-    for (j=0;j<l1;j++) {
-      for (i=j;i<n;i+=l2) {
-        i1 = i + l1;
-        t1 = u1 * x[i1] - u2 * y[i1];
-        t2 = u1 * y[i1] + u2 * x[i1];
-        x[i1] = x[i] - t1; 
-        y[i1] = y[i] - t2;
-        x[i] += t1;
-        y[i] += t2;
-      }
-      z =  u1 * c1 - u2 * c2;
-      u2 = u1 * c2 + u2 * c1;
-      u1 = z;
-    }
-    c2 = sqrt((1.0 - c1) / 2.0);
-    if (dir == 1) 
-      c2 = -c2;
-    c1 = sqrt((1.0 + c1) / 2.0);
-  }
-
-  /* Scaling for forward transform */
-  if (dir == 1) {
-    for (i=0;i<n;i++) {
-      x[i] /= n;
-      y[i] /= n;
-    }
-  }
-   
-  //return(1);
-}
-
-
-//--------------------------------------------------------------------------------------------------------
+//***********************************************************
+// f_make_histo assembles the histograms used in BuilEvent()
 
 void TPLEIADESProc:: f_make_histo (Int_t l_mode)
 {
@@ -1142,28 +890,6 @@ void TPLEIADESProc:: f_make_histo (Int_t l_mode)
   if (l_first2 == 0)
   {
     l_first2 = 1;
-
-    #ifdef FFT_GSI
-    l_pct = 0;
-    l_tr_fft_si = l_tra_size;
-
-    printf ("trace lenght: %d \n", l_tr_fft_si); fflush (stdout);  
-    while (1)
-    {
-      if (l_tr_fft_si > 0)
-      {
-        l_tr_fft_si = l_tr_fft_si/2;
-        l_pct++;
-      }
-      else
-      {
-        l_pct--;
-        l_tr_fft_si = pow (2,l_pct);
-        printf ("FFT trace length: %d / power: %d \n", l_tr_fft_si, l_pct); fflush (stdout);
-        break;     
-      }  
-    }
-    #endif // FFT_GSI
   }
 
   for (l_i=0; l_i<MAX_SFP; l_i++)
@@ -1186,38 +912,6 @@ void TPLEIADESProc:: f_make_histo (Int_t l_mode)
           sprintf(chead,"Trace, base line restored");
           h_trace_blr[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
         }
-
-        #ifdef APFEL
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"APFEL Energy/APFEL Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"Energy");
-          h_apfel_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x2000,-0x1000,0x1000);
-        }
-        
-        #ifdef APFEL_INT
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"Sum Traces/Sum Traces  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"SUM Trace from base line restored trace");
-          h_sum_trace[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
-        }
-
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"TRAPEZ from Sum/Sum TRAPEZ Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"TRAPEZ Filter from Sum of APFEL trace");
-          h_apf_trap_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
-        }
-
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"APFEL Trapez Energy/APFEL Trapez Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"Energy from Sum Trace and trapezoidal filter");
-          h_apf_trap_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x2000,-0x18000,0x18000);
-        }
-        #endif // APFEL_INT
-        #endif // APFEL
 
         #ifdef TRAPEZ 
         for (l_k=0; l_k<N_CHA; l_k++)
@@ -1259,54 +953,6 @@ void TPLEIADESProc:: f_make_histo (Int_t l_mode)
           h_mwd_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-0x1000,0x1000);
         }
         #endif // MWD
-
-        #ifdef IVAN 
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"IVAN/Ivan Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"IVAN Filter");
-          h_ivan_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
-        }
-        #endif // IVAN
-
-        #ifdef TEST_FFT_GSI 
-        sprintf(chis,"FFT_Test/Test function");
-        sprintf(chead,"FFT Test func");
-        h_test = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        sprintf(chis,"FFT_Test/FFT real Test function");
-        sprintf(chead,"FFT real Test func");
-        h_test_fft_real = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        sprintf(chis,"FFT_Test/FFT imag Test function");
-        sprintf(chead,"FFT imag Test func");
-        h_test_fft_imag = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        #endif // TEST_FFT_GSI       
-
-        #ifdef FFT_GSI
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"FFTreal/Frequency spectrum (real part)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"FFT Filter (real part)");
-          h_fft_real[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        }
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"FFTimag/Frequency spectrum (imag part)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"FFT Filter (imag part)");
-          h_fft_imag[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        }
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"FFTamplitude/Frequency spectrum amplitude  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"FFT Filter (amplitude)");
-          h_fft_ampl[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        }
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"FFTphase/Frequency spectrum phase  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"FFT Filter (phase)");
-          h_fft_phas[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tr_fft_si,0,l_tr_fft_si);
-        }
-        #endif // FFT_GSI
 
         for (l_k=0; l_k<N_CHA; l_k++)
         {

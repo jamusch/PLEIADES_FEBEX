@@ -1,4 +1,6 @@
 //-------------------------------------------------------------
+//********************** TPLEIADESProc.h **********************
+//-------------------------------------------------------------
 //        Go4 Release Package v3.03-05 (build 30305)
 //                      05-June-2008
 //---------------------------------------------------------------
@@ -30,13 +32,6 @@
 
 #define TRAPEZ 1
 #define MWD    1
-//#define APFEL  1
-//#define IVAN   1
-//#define FFT_GSI    1
-#ifdef FFT_GSI
- #define TEST_FFT_GSI 1
-#endif
-
 
 // JAM23: now these definitions are in TPLEIADESRawEvent.h
 //#define MAX_SFP           4
