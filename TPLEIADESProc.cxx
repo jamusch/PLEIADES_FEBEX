@@ -126,56 +126,56 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   UInt_t	l_sfp_id;			// SFP ID (ie FEBEX crate)
   UInt_t	l_feb_id;			// FEBEX card ID
   UInt_t	l_cha_id;			// FEBEX Channel ID
-  UInt_t	l_n_hit;
+  UInt_t	l_n_hit;			// number of hits for subevent
   //UInt_t	l_hit_id;
-  UInt_t	l_hit_cha_id;
-  Long64_t	ll_time;
-  Long64_t	ll_trg_time;
+  UInt_t	l_hit_cha_id;			// hit channel id
+  Long64_t	ll_time;			// hit time from special channel
+  Long64_t	ll_trg_time;			// trigger time from special channel
   //Long64_t	ll_hit_time;
-  UInt_t	l_ch_hitpat   [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t	l_ch_hitpat_tr[MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t	l_first_trace [MAX_SFP][MAX_SLAVE];
+  UInt_t	l_ch_hitpat   [MAX_SFP][MAX_SLAVE][N_CHA];	// channel hit pattern float array for filling histograms
+  UInt_t	l_ch_hitpat_tr[MAX_SFP][MAX_SLAVE][N_CHA];  	// channel hit pattern for traces
+  UInt_t	l_first_trace [MAX_SFP][MAX_SLAVE];		// tracks first trace in FEBEX to fill -1 bin in hist
 
-  UInt_t	l_cha_head;  
-  UInt_t	l_cha_size;
-  UInt_t	l_trace_head;
-  UInt_t	l_trace_size;
-  UInt_t	l_trace_trail;
+  UInt_t	l_cha_head;  			// 32bit word for channel header
+  UInt_t	l_cha_size;			// 32bit word for channel size (ie length in words)
+  UInt_t	l_trace_head;			// 32bit word for trace header
+  UInt_t	l_trace_size;			// 32bit word for trace size
+  UInt_t	l_trace_trail;			// 32bit word for checking trace trail
 
-  UInt_t	l_spec_head;
-  UInt_t	l_spec_trail;
-  UInt_t	l_n_hit_in_cha;
-  UInt_t	l_only_one_hit_in_cha;
-  UInt_t	l_more_than_1_hit_in_cha;  
-  UInt_t	l_hit_time_sign;
-   Int_t	l_hit_time;
-  UInt_t	l_hit_cha_id2;
-  UInt_t	l_fpga_energy_sign;
-   Int_t	l_fpga_energy;
+  UInt_t	l_spec_head;			// 32bit word for checking special channel header
+  UInt_t	l_spec_trail;			// 32bit word for checking special channel trace trail
+  UInt_t	l_n_hit_in_cha;			// number of hits for specific channel
+  UInt_t	l_only_one_hit_in_cha;		// y/n for just one hit in channel
+  UInt_t	l_more_than_1_hit_in_cha;  	// y/n for more than one hit
+  UInt_t	l_hit_time_sign;		// bit for polarity of hit time relative to trigger
+   Int_t	l_hit_time;			// magnitude of hit time
+  UInt_t	l_hit_cha_id2;			// hit channel for FPGA energy
+  UInt_t	l_fpga_energy_sign;		// bit for polarity of FPGA energy
+   Int_t	l_fpga_energy;			// magnitude of FPGA energy
 
-  UInt_t	l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t	l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 
-  UInt_t	l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t	l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA]; 
+  UInt_t	l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];	// array of y/n if TRAPEZ energy found
+  UInt_t	l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 	// array of y/n if FPGA energy found
+  UInt_t	l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];	// array of magnitude of TRAPEZ energy
+  UInt_t	l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];	// array of magnitude of FPGA energy
 
-  UInt_t	l_dat_fir;
-  UInt_t	l_dat_sec;
+  UInt_t	l_dat_fir;			// word for first half of trace
+  UInt_t	l_dat_sec;			// word for second half of trace
 
-  static UInt_t	l_evt_ct=0;
-  static UInt_t	l_evt_ct_phys=0;
+  static UInt_t	l_evt_ct=0;			// MBS event counter
+  static UInt_t	l_evt_ct_phys=0;		// physics event counter
 
-  UInt_t	l_pol = 0;
+  UInt_t	l_pol = 0;			// polarity of FEBEX cards
 
-  UInt_t	l_bls_start = BASE_LINE_SUBT_START;
-  UInt_t	l_bls_stop  = BASE_LINE_SUBT_START + BASE_LINE_SUBT_SIZE; // 
-  Double_t	f_bls_val=0.;
+  UInt_t	l_bls_start = BASE_LINE_SUBT_START;				// start for trace baseline calculation
+  UInt_t	l_bls_stop  = BASE_LINE_SUBT_START + BASE_LINE_SUBT_SIZE;	// stop for trace baseline calculation
+  Double_t	f_bls_val=0.;			// value of trace baseline
 
   
   //-----------------------------------------------------------
   // special function objects. only initialised if defined in header.
 
   #ifdef TRAPEZ
-   Int_t	l_A1, l_A2;			// TRAPEZ filter counters
+   Int_t	l_A1, l_A2;		// TRAPEZ filter counters
    UInt_t	l_gap = TRAPEZ_N_GAP; 	// TRAPEZ gap size
    UInt_t	l_win = TRAPEZ_N_AVG; 	// TRAPEZ window size
   #endif // TRAPEZ
@@ -197,11 +197,11 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
    #endif // MWD 
   #endif // MWD
 
-  Int_t		l_fpga_filt_on_off;
-  //Int_t	l_fpga_filt_mode;
-  Int_t		l_dat_trace;
-  Int_t		l_dat_filt;
-  Int_t		l_filt_sign;
+  Int_t		l_fpga_filt_on_off;	// 4bit for checking if FPGA filter mode is on
+  //Int_t	l_fpga_filt_mode;	// not used?
+  Int_t		l_dat_trace;		// word for storing trace used in FGPA filter
+  Int_t		l_dat_filt;		// word for storing FGPA filter
+  Int_t		l_filt_sign;		// polarity of FPGA filter for correction
 
 
 
