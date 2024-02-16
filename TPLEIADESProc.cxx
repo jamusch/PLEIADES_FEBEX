@@ -294,8 +294,9 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   l_dat = (*pl_tmp++) >> 16;
   if (l_dat != TS__ID_X16)
   {
-    printf ("ERROR>> 4. data word does not contain 48-63 16bit identifier:  \n");
+    printf ("ERROR>> 5. data word does not contain 48-63 16bit identifier:  \n");
     printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_X16, l_dat);
+    printf ("WR_TIME_STAMP is activated, but timestamp is throwing errors. Perhaps WR_TIME_STAMP should be turned off?\n");
   }
   #endif // WR_TIME_STAMP
 
@@ -391,19 +392,19 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
       // check SFP, FEBEX card, and channel IDs are within expected range
       if ((l_sfp_id > (MAX_SFP-1)) || (l_sfp_id < 0))
       {
-        printf ("ERROR>> l_spf_id: %d \n", l_sfp_id);  fflush (stdout);
+        printf ("ERROR>> SFP out of range - l_sfp_id: %d \n", l_sfp_id);  fflush (stdout);
         goto bad_event; 
       }
       if ((l_feb_id > (MAX_SLAVE-1)) || (l_feb_id < 0))
       {
-        printf ("ERROR>> l_feb_id: %d \n", l_feb_id); fflush (stdout);
+        printf ("ERROR>> FEBEX out of range - l_feb_id: %d \n", l_feb_id); fflush (stdout);
         goto bad_event; 
       }
       if ((l_cha_id > (N_CHA-1)) || (l_cha_id < 0))
       {
         if (l_cha_id != 0xff)
         { 
-          printf ("ERROR>> l_cha_id: %d \n", l_cha_id); fflush (stdout);
+          printf ("ERROR>> Channel out of range - l_cha_id: %d \n", l_cha_id); fflush (stdout);
           goto bad_event;
         }
       }

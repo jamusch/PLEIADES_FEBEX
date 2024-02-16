@@ -23,7 +23,7 @@
 
 
 #define MAX_SFP          4
-#define MAX_SLAVE        4
+#define MAX_SLAVE        5
 #define N_CHA            16
 
 

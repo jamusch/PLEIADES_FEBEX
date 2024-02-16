@@ -18,7 +18,9 @@
 #ifndef TUNPACKPROCESSOR_H
 #define TUNPACKPROCESSOR_H
 
-#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
+// comment out define statements to turn on/off
+
+//#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 
 #ifdef WR_TIME_STAMP
  #define SUB_SYSTEM_ID      0x200
@@ -38,7 +40,7 @@
 //#define MAX_SLAVE        16
 //#define N_CHA            16
 
-#define ADC_RES            2000./16384.   // mV
+#define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
 
 #ifdef USE_MBS_PARAM
  #define MAX_TRACE_SIZE    8000   // in samples 
@@ -49,7 +51,7 @@
  // nr of slaves on SFP 0    1  2  3
  //                     |    |  |  |
  #define NR_SLAVES    { 0,   9, 0, 0}
-/#define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
+ #define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
                                          // bit 0 fuer slave module 0 
                                          // bit n fuer slave module n (max n = 31)
  //                  SFP 0       SFP 1        SFP 2        SFP 3 
