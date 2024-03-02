@@ -50,7 +50,7 @@
  //#define     TRAPEZ_N_AVG    64   // in samples
  // nr of slaves on SFP 0    1  2  3
  //                     |    |  |  |
- #define NR_SLAVES    { 0,   9, 0, 0}
+ #define NR_SLAVES    { 0,   5, 0, 0}
  #define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
                                          // bit 0 fuer slave module 0 
                                          // bit n fuer slave module n (max n = 31)
@@ -66,17 +66,8 @@
  //  0: positive signals, 1 negative signals
 #endif
 
-#ifdef APFEL
- //#define APFEL_INT 1
-#endif
-
 #define BASE_LINE_SUBT_START  0
 #define BASE_LINE_SUBT_SIZE   20
-
-#ifdef APFEL_INT
- #define A_TRAPEZ_N_GAP 100
- #define A_TRAPEZ_N_AVG 150
-#endif // APFEL_INT
 
 #ifdef TRAPEZ
  #define TRAPEZ_N_GAP  8
@@ -92,17 +83,12 @@
  #define MWD_TAU   5000   // differential input febex  // in number of trace slices
 #endif // MWD
 
-#ifdef IVAN
- #define C1 (Real_t) 0.93
- #define C2 (Real_t) 0.93
- #define C3 (Real_t) 0.85
-#endif // IVAN 
-
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
 
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESRawEvent.h"
+
 class TPLEIADESParam;
 //class TGo4Fitter;
 

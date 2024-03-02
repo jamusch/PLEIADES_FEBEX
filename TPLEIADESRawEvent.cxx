@@ -16,48 +16,123 @@
 
 #include "TGo4Log.h"
 
-//***********************************************************
+//-----------------------------------------------------------------------
+// this is the lowest class for the individual FEBEX channel readouts
+//-----------------------------------------------------------------------
+
+TPLEIADESFebChannel::TPLEIADESFebChannel() :
+   TGo4EventElement()
+{
+   TGo4Log::Info("TPLEIADESFebChannel: Create instance");
+}
+
+TPLEIADESFebChannel::TPLEIADESFebChannel(const char *name, Short_t index) :
+   TGo4EventElement(name, name, index)
+{
+   TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
+}
+
+TPLEIADESFebChannel::~TPLEIADESFebChannel()
+{
+   TGo4Log::Info("TPLEIADESFebChannel: Delete instance");
+}
+
+void TPLEIADESFebChannel::Clear(Option_t *opt)
+{
+   // all members should be cleared, i.e. assigned to a "not filled" value
+   /** FEBEX special channel properties **/
+   fFPGAEnergy = 0;
+   fFGPAHitTime = 0;
+   fFPGATRAPEZ.clear();
+
+   /** FEBEX trace properties **/
+#ifdef TPLEIADES_FILL_TRACES
+   fTrace.clear();
+   fTraceBLR.clear();
+   fTraceTRAPEZ.clear();
+#endif
+}
+
+//-----------------------------------------------------------------------
+// this class represents one FEBEX-3 board with 16 Feb Channels
+//-----------------------------------------------------------------------
+
+TPLEIADESFebBoard::TPLEIADESFebBoard() :
+   TGo4CompositeEvent(),fLastEventNumber(-1)
+{
+   TGo4Log::Info("TPLEIADESFebBoard: Create instance");
+}
+
+TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t index) :
+   TGo4CompositeEvent(name, name, index), fUniqueId(unid), fLastEventNumber(-1)
+{
+   TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
+
+   //create channels for FEBEX board
+   TString modname;
+   for (int i=0; i < N_CHA; ++i)
+   {
+      modname.Form("PLEIADES_Board%02d_Ch%02d", fUniqueId, i);
+      addEventElement(new TPLEIADESFebChannel(modname.Data(), i));
+   }
+}
+
+TPLEIADESFebBoard::~TPLEIADESFebBoard()
+{
+   TGo4Log::Info("TPLEIADESFebChannel: Delete instance");
+}
+
+void TPLEIADESFebBoard::Clear(Option_t *opt)
+{
+   TGo4CompositeEvent::Clear();
+}
+
+//-----------------------------------------------------------------------
+// this is the top event structure with all FEBEX boards in the chain
+//-----------------------------------------------------------------------
+
 TPLEIADESRawEvent::TPLEIADESRawEvent() :
    TGo4EventElement()
 {
    TGo4Log::Info("TPLEIADESRawEvent: Create instance");
 }
-//***********************************************************
+
 TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name) :
    TGo4EventElement(name)
 {
    TGo4Log::Info("TPLEIADESRawEvent: Create instance %s", name);
+
+   //create boards for SFP 1
+   TString modname;
+   for (int i=0; i<MAX_SLAVE; ++i)
+   {
+      modname.Form("PLEIADES_Board_%02d", i);
+      addEventElement(new TPLEIADESFebBoard(modname.Data(), i, i));
+   }
 }
-//***********************************************************
+
 TPLEIADESRawEvent::~TPLEIADESRawEvent()
 {
    TGo4Log::Info("TPLEIADESRawEvent: Delete instance");
 }
 
-//-----------------------------------------------------------
-void TPLEIADESRawEvent::Clear(Option_t *)
+TPLEIADESFebBoard* TPLEIADESRawEvent::GetBoard(UInt_t unid)
 {
-  // all members should be cleared, i.e. assigned to a "not filled" value
-
-  fSequenceNumber=-1;
-
-  for (int i = 0; i < MAX_SFP; i++)
-    {
-      for (int j = 0; j < MAX_SLAVE; j++)
+   TPLEIADESFebBoard* theBoard = 0;
+   Short_t numBoards = getNElements();
+   for (int i=0; i<numBoards; ++i)
+   {
+      theBoard = (TPLEIADESFebBoard*) getEventElement(i);
+      if (theBoard->GetBoardId() == unid)
       {
-        for (int k = 0; k < N_CHA; k++)
-        {
-          fE_FPGA_Trapez[i][j][k]=0;
-
-#ifdef TPLEIADES_FILL_TRACES
-          fTrace[i][j][k].clear();
-          fTraceBLR[i][j][k].clear();
-          fTrapezFPGA[i][j][k].clear();
-#endif
-
-        }
+         return theBoard;
       }
-    }
+   }
+   return 0;
+}
 
-
+void TPLEIADESRawEvent::Clear(Option_t *opt)
+{
+   TGo4CompositeEvent::Clear();
+   fSequenceNumber = -1;
 }

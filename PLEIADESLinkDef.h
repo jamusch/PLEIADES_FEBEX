@@ -19,9 +19,13 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class TPLEIADESParam+;
+#pragma link C++ class TPLEIADESFebChannel+;
+#pragma link C++ class TPLEIADESFebBoard+;
+
 #pragma link C++ class TPLEIADESRawEvent+;
 #pragma link C++ class TPLEIADESProc+;
+#pragma link C++ class TPLEIADESParam+;
+
 #pragma link C++ class TPLEIADESAnalysis+;
 
 #endif

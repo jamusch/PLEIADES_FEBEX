@@ -1,4 +1,4 @@
-//----------------------------------------------------------------
+﻿//----------------------------------------------------------------
 //********************** TPLEIADESProc.cxx ***********************
 //----------------------------------------------------------------
 //        Go4 Release Package v3.03-05 (build 30305)
@@ -157,6 +157,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   UInt_t	l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 	// array of y/n if FPGA energy found
   UInt_t	l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];	// array of magnitude of TRAPEZ energy
   UInt_t	l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];	// array of magnitude of FPGA energy
+  UInt_t 	l_fpga_hitti     [MAX_SFP][MAX_SLAVE][N_CHA]; // array of hit time values from FPGA
 
   UInt_t	l_dat_fir;			// word for first half of trace
   UInt_t	l_dat_sec;			// word for second half of trace
@@ -472,6 +473,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               }
               //printf ("cha: %d, hit fpga time:  %d \n", l_hit_cha_id,  l_hit_time);
               h_trgti_hitti[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_hit_time);
+              l_fpga_hitti[l_sfp_id][l_feb_id][l_hit_cha_id] = l_hit_time;
             }
             h_hitpat[l_sfp_id][l_feb_id]->Fill (l_hit_cha_id, l_n_hit_in_cha);	// fill hit pattern histogram
             
@@ -804,6 +806,68 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
 
 
   //----------------------------------------------------------
+  // filling output events
+  //----------------------------------------------------------
+  for (l_i=0; l_i<MAX_SFP; ++l_i)
+  {
+    if (l_sfp_slaves[l_i] != 0)
+    {
+       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       {
+          TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(l_j);
+          if (theBoard == 0)
+          {
+             GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist", l_j)
+             return kFALSE;
+          }
+
+          for (l_k=0; l_k < theBoard->getNElements(); l_k++)
+          {
+             TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
+             if (theChannel == 0)
+             {
+                GO4_SKIP_EVENT_MESSAGE("Configuration error: Channel at board %d ch %d does not exist", l_j, l_k)
+                return kFALSE;
+             }
+
+             theChannel->fFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
+             theChannel->fFGPAHitTime = l_fpga_hitti[l_i][l_j][l_k];
+
+#ifdef TPLEIADES_FILL_TRACES
+             for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+                 l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
+                 theChannel->fTrace[l_i][l_j][l_k].push_back(l_value);
+             }
+
+             for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+                 l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
+                 theChannel->fTraceBLR[l_i][l_j][l_k].push_back(l_value);
+             }
+
+             for(int bin=1; bin<h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+                 l_value=h_trapez_f[l_i][l_j][l_k]->GetBinContent(bin);
+                 theChannel->fTraceTRAPEZ[l_i][l_j][l_k].push_back(l_value);
+             }
+
+             theChannel->fTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
+
+             for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+                 l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
+                 theChannel->fFPGATRAPEZ[l_i][l_j][l_k].push_back(l_value);
+             }
+#endif
+          }
+       }
+    }
+  }
+  fOutEvent->SetValid(kTRUE);
+
+/**
+  //----------------------------------------------------------
   // JAM 12/2023: copy here values to output event for optional ROOT tree storage
   //----------------------------------------------------------
   #ifdef TPLEIADES_FILL_TRACES
@@ -840,7 +904,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   fOutEvent->SetValid(kTRUE);
   #endif
   //printf ("check next event \n"); sleep (1);
-
+**/
   bad_event:
 
   //----------------------------------------------------------

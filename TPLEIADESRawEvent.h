@@ -20,6 +20,7 @@
 #define TPLEIADES_FILL_TRACES 1
 
 #include "TGo4EventElement.h"
+#include "TGo4CompositeEvent.h"
 
 
 #define MAX_SFP          4
@@ -27,7 +28,67 @@
 #define N_CHA            16
 
 
-class TPLEIADESRawEvent : public TGo4EventElement {
+//-----------------------------------------------------------------------
+// this is the lowest class for the individual FEBEX channel readouts
+//-----------------------------------------------------------------------
+
+class TPLEIADESFebChannel : public TGo4EventElement {
+   public
+      TPLEIADESFebChannel();
+      TPLEIADESFebChannel(const char *name, Short_t index);
+      virtual ~TPLEIADESFebChannel();
+
+      /** Method called by the framework to clear the event element. */
+      void Clear(Option_t *opt = "") override;
+
+      /** FEBEX special channel properties **/
+      UInt_t fFPGAEnergy;
+      Int_t fFGPAHitTime;
+      std::vector<Int_t> fFPGATRAPEZ;
+
+      /** FEBEX trace properties **/
+#ifdef TPLEIADES_FILL_TRACES
+      UInt_t fTrapezEnergy;
+      std::vector<UInt_t>  fTrace;
+      std::vector<Int_t>   fTraceBLR;
+      std::vector<Int_t>   fTraceTRAPEZ;
+#endif
+
+      ClassDef(TPLEIADESFebChannel,1)
+};
+
+
+//-----------------------------------------------------------------------
+// this class represents one FEBEX-3 board with 16 Feb Channels
+//-----------------------------------------------------------------------
+
+class TPLEIADESFebBoard : public TGo4CompositeEvent {
+   public:
+      TPLEIADESFebBoard();
+         TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t index);
+         virtual ~TPLEIADESFebBoard();
+
+         /** get board identifier in setup **/
+         UInt_t GetBoardId() { return fUniqueId; }
+
+         /** create channel objects **/
+         TPLEIADESFebChannel* GetChannel(UInt_t index)
+         {
+            return (TPLEIADESFebChannel*) getEventElement(index);
+         }
+
+         /** Method called by the framework to clear the event element. */
+         void Clear(Option_t *opt = "") override;
+
+   ClassDef(TPLEIADESFebBoard,1)
+};
+
+
+//-----------------------------------------------------------------------
+// this is the top event structure with all FEBEX boards in the chain
+//-----------------------------------------------------------------------
+
+class TPLEIADESRawEvent : public TGo4CompositeEvent {
    public:
       TPLEIADESRawEvent();
       TPLEIADESRawEvent(const char *name);
@@ -40,13 +101,15 @@ class TPLEIADESRawEvent : public TGo4EventElement {
        Int_t fSequenceNumber;
 
       /** Example: put corrected Energy from filter for each channel here */
-      Double_t fE_FPGA_Trapez[MAX_SFP][MAX_SLAVE][N_CHA];
+      //Double_t fE_FPGA_Trapez[MAX_SFP][MAX_SLAVE][N_CHA];
 
+/**
 #ifdef TPLEIADES_FILL_TRACES
       std::vector<Double_t> fTrace[MAX_SFP][MAX_SLAVE][N_CHA];
       std::vector<Double_t> fTraceBLR[MAX_SFP][MAX_SLAVE][N_CHA];
       std::vector<Double_t> fTrapezFPGA[MAX_SFP][MAX_SLAVE][N_CHA];
 #endif
+**/
 
    ClassDefOverride(TPLEIADESRawEvent,1)
 };
