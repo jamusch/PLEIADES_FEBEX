@@ -65,20 +65,20 @@ class TPLEIADESFebChannel : public TGo4EventElement {
 class TPLEIADESFebBoard : public TGo4CompositeEvent {
    public:
       TPLEIADESFebBoard();
-         TPLEIADESFebBoard(const char *name, Short_t id);
-         virtual ~TPLEIADESFebBoard();
+      TPLEIADESFebBoard(const char *name, Short_t id);
+      virtual ~TPLEIADESFebBoard();
 
-         /** gets board ID **/
-         UInt_t GetBoardId() { return boardId; }
+      /** gets board ID **/
+      UInt_t GetBoardId() { return boardId; }
 
-         /** create channel objects **/
-         TPLEIADESFebChannel* GetChannel(UInt_t index)
-         {
-            return (TPLEIADESFebChannel*) getEventElement(index);
-         }
+      /** create channel objects **/
+      TPLEIADESFebChannel* GetChannel(UInt_t index)
+      {
+         return (TPLEIADESFebChannel*) getEventElement(index);
+      }
 
-         /** Method called by the framework to clear the event element. */
-         void Clear(Option_t *opt = "") override;
+      /** Method called by the framework to clear the event element. */
+      void Clear(Option_t *opt = "") override;
 
    private:
 
@@ -99,7 +99,7 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent {
 class TPLEIADESRawEvent : public TGo4CompositeEvent {
    public:
       TPLEIADESRawEvent();
-      TPLEIADESRawEvent(const char *name);
+      TPLEIADESRawEvent(const char *name, Short_t id);
       virtual ~TPLEIADESRawEvent();
 
       /** Method called by the framework to clear the event element. */

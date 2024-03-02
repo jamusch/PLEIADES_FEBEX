@@ -796,8 +796,8 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
             //printf ("Energy FPGA / Energy Trace: %1.10f \n",l_value);
 
             // JAM 12-12-2023: EXAMPLE -put evaluated energy for each channel to output event here:
-            fOutEvent->fE_FPGA_Trapez[l_i][l_j][l_k]=l_value;
-            fOutEvent->SetValid(kTRUE);
+            //fOutEvent->fE_FPGA_Trapez[l_i][l_j][l_k]=l_value;
+            //fOutEvent->SetValid(kTRUE);
           }
         }
       }
@@ -837,19 +837,19 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
              for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
                  l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-                 theChannel->fTrace[l_i][l_j][l_k].push_back(l_value);
+                 theChannel->fTrace.push_back(l_value);
              }
 
              for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
                  l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
-                 theChannel->fTraceBLR[l_i][l_j][l_k].push_back(l_value);
+                 theChannel->fTraceBLR.push_back(l_value);
              }
 
              for(int bin=1; bin<h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
                  l_value=h_trapez_f[l_i][l_j][l_k]->GetBinContent(bin);
-                 theChannel->fTraceTRAPEZ[l_i][l_j][l_k].push_back(l_value);
+                 theChannel->fTraceTRAPEZ.push_back(l_value);
              }
 
              theChannel->fTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
@@ -857,7 +857,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
              for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
              {
                  l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-                 theChannel->fFPGATRAPEZ[l_i][l_j][l_k].push_back(l_value);
+                 theChannel->fFPGATRAPEZ.push_back(l_value);
              }
 #endif
           }

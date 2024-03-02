@@ -92,13 +92,13 @@ void TPLEIADESFebBoard::Clear(Option_t *opt)
 //-----------------------------------------------------------------------
 
 TPLEIADESRawEvent::TPLEIADESRawEvent() :
-   TGo4EventElement()
+   TGo4CompositeEvent()
 {
    TGo4Log::Info("TPLEIADESRawEvent: Create instance");
 }
 
-TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name) :
-   TGo4EventElement(name)
+TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
+   TGo4CompositeEvent(name, name, id)
 {
    TGo4Log::Info("TPLEIADESRawEvent: Create instance %s", name);
 
