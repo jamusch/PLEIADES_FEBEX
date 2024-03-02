@@ -33,7 +33,7 @@
 //-----------------------------------------------------------------------
 
 class TPLEIADESFebChannel : public TGo4EventElement {
-   public
+   public:
       TPLEIADESFebChannel();
       TPLEIADESFebChannel(const char *name, Short_t index);
       virtual ~TPLEIADESFebChannel();
@@ -54,7 +54,7 @@ class TPLEIADESFebChannel : public TGo4EventElement {
       std::vector<Int_t>   fTraceTRAPEZ;
 #endif
 
-      ClassDef(TPLEIADESFebChannel,1)
+      ClassDefOverride(TPLEIADESFebChannel,1)
 };
 
 
@@ -65,11 +65,11 @@ class TPLEIADESFebChannel : public TGo4EventElement {
 class TPLEIADESFebBoard : public TGo4CompositeEvent {
    public:
       TPLEIADESFebBoard();
-         TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t index);
+         TPLEIADESFebBoard(const char *name, Short_t id);
          virtual ~TPLEIADESFebBoard();
 
-         /** get board identifier in setup **/
-         UInt_t GetBoardId() { return fUniqueId; }
+         /** gets board ID **/
+         UInt_t GetBoardId() { return boardId; }
 
          /** create channel objects **/
          TPLEIADESFebChannel* GetChannel(UInt_t index)
@@ -80,7 +80,15 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent {
          /** Method called by the framework to clear the event element. */
          void Clear(Option_t *opt = "") override;
 
-   ClassDef(TPLEIADESFebBoard,1)
+   private:
+
+      /** board ID for tracking object **/
+      UInt_t boardId;
+
+      /** check sequence number of events and report missing events **/
+      Int_t fLastEventNumber;
+
+   ClassDefOverride(TPLEIADESFebBoard,1)
 };
 
 
@@ -96,6 +104,9 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent {
 
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *opt = "") override;
+
+      /** access to board ID number **/
+      TPLEIADESFebBoard* GetBoard(UInt_t boardId);
 
       /** Event sequence number incremented by MBS Trigger*/
        Int_t fSequenceNumber;

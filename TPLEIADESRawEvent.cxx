@@ -63,8 +63,8 @@ TPLEIADESFebBoard::TPLEIADESFebBoard() :
    TGo4Log::Info("TPLEIADESFebBoard: Create instance");
 }
 
-TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t index) :
-   TGo4CompositeEvent(name, name, index), fUniqueId(unid), fLastEventNumber(-1)
+TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, Short_t id) :
+   TGo4CompositeEvent(name, name, id), fLastEventNumber(-1)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
 
@@ -72,7 +72,7 @@ TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t inde
    TString modname;
    for (int i=0; i < N_CHA; ++i)
    {
-      modname.Form("PLEIADES_Board%02d_Ch%02d", fUniqueId, i);
+      modname.Form("PLEIADES_Board%02d_Ch%02d", id, i);
       addEventElement(new TPLEIADESFebChannel(modname.Data(), i));
    }
 }
@@ -107,7 +107,7 @@ TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name) :
    for (int i=0; i<MAX_SLAVE; ++i)
    {
       modname.Form("PLEIADES_Board_%02d", i);
-      addEventElement(new TPLEIADESFebBoard(modname.Data(), i, i));
+      addEventElement(new TPLEIADESFebBoard(modname.Data(), i));
    }
 }
 
@@ -116,14 +116,14 @@ TPLEIADESRawEvent::~TPLEIADESRawEvent()
    TGo4Log::Info("TPLEIADESRawEvent: Delete instance");
 }
 
-TPLEIADESFebBoard* TPLEIADESRawEvent::GetBoard(UInt_t unid)
+TPLEIADESFebBoard* TPLEIADESRawEvent::GetBoard(UInt_t boardId)
 {
    TPLEIADESFebBoard* theBoard = 0;
    Short_t numBoards = getNElements();
    for (int i=0; i<numBoards; ++i)
    {
       theBoard = (TPLEIADESFebBoard*) getEventElement(i);
-      if (theBoard->GetBoardId() == unid)
+      if (theBoard->GetBoardId() == boardId)
       {
          return theBoard;
       }
