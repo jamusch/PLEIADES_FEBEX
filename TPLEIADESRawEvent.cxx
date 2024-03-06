@@ -58,13 +58,13 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
 //-----------------------------------------------------------------------
 
 TPLEIADESFebBoard::TPLEIADESFebBoard() :
-   TGo4CompositeEvent(),fLastEventNumber(-1)
+   TGo4CompositeEvent(),boardId(0), fLastEventNumber(-1)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance");
 }
 
 TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, Short_t id) :
-   TGo4CompositeEvent(name, name, id), fLastEventNumber(-1)
+   TGo4CompositeEvent(name, name, id), boardId(id), fLastEventNumber(-1)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
 
@@ -108,6 +108,7 @@ TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
    {
       modname.Form("PLEIADES_Board_%02d", i);
       addEventElement(new TPLEIADESFebBoard(modname.Data(), i));
+
    }
 }
 

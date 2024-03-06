@@ -99,7 +99,7 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent {
 class TPLEIADESRawEvent : public TGo4CompositeEvent {
    public:
       TPLEIADESRawEvent();
-      TPLEIADESRawEvent(const char *name, Short_t id);
+      TPLEIADESRawEvent(const char *name, Short_t id=0);
       virtual ~TPLEIADESRawEvent();
 
       /** Method called by the framework to clear the event element. */
