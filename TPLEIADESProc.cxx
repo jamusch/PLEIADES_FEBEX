@@ -765,7 +765,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     }
     else	// if data word not padding or channel header, throw error
     {
-      printf ("ERROR>> data word neither channel header nor padding word \n");
+      //printf ("ERROR>> data word neither channel header nor padding word \n");
     }       
   }
   //----------------------------------------------------------
