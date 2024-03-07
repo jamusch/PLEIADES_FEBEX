@@ -26,8 +26,8 @@ TPLEIADESFebChannel::TPLEIADESFebChannel() :
    TGo4Log::Info("TPLEIADESFebChannel: Create instance");
 }
 
-TPLEIADESFebChannel::TPLEIADESFebChannel(const char *name, Short_t index) :
-   TGo4EventElement(name, name, index)
+TPLEIADESFebChannel::TPLEIADESFebChannel(const char *name, Short_t id) :
+   TGo4EventElement(name, name, id)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
 }
@@ -58,19 +58,19 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
 //-----------------------------------------------------------------------
 
 TPLEIADESFebBoard::TPLEIADESFebBoard() :
-   TGo4CompositeEvent(),boardId(0), fLastEventNumber(-1)
+   TGo4CompositeEvent(), fLastEventNumber(-1)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance");
 }
 
 TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, Short_t id) :
-   TGo4CompositeEvent(name, name, id), boardId(id), fLastEventNumber(-1)
+   TGo4CompositeEvent(name, name, id), fLastEventNumber(-1)
 {
    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s", name);
 
    //create channels for FEBEX board
    TString modname;
-   for (int i=0; i < N_CHA; ++i)
+   for (int i=0; i<N_CHA; ++i)
    {
       modname.Form("PLEIADES_Board%02d_Ch%02d", id, i);
       addEventElement(new TPLEIADESFebChannel(modname.Data(), i));
@@ -115,21 +115,6 @@ TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
 TPLEIADESRawEvent::~TPLEIADESRawEvent()
 {
    TGo4Log::Info("TPLEIADESRawEvent: Delete instance");
-}
-
-TPLEIADESFebBoard* TPLEIADESRawEvent::GetBoard(UInt_t boardId)
-{
-   TPLEIADESFebBoard* theBoard = 0;
-   Short_t numBoards = getNElements();
-   for (int i=0; i<numBoards; ++i)
-   {
-      theBoard = (TPLEIADESFebBoard*) getEventElement(i);
-      if (theBoard->GetBoardId() == boardId)
-      {
-         return theBoard;
-      }
-   }
-   return 0;
 }
 
 void TPLEIADESRawEvent::Clear(Option_t *opt)

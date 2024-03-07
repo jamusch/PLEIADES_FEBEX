@@ -35,7 +35,7 @@
 class TPLEIADESFebChannel : public TGo4EventElement {
    public:
       TPLEIADESFebChannel();
-      TPLEIADESFebChannel(const char *name, Short_t index);
+      TPLEIADESFebChannel(const char *name, Short_t id);
       virtual ~TPLEIADESFebChannel();
 
       /** Method called by the framework to clear the event element. */
@@ -68,22 +68,16 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent {
       TPLEIADESFebBoard(const char *name, Short_t id);
       virtual ~TPLEIADESFebBoard();
 
-      /** gets board ID **/
-      UInt_t GetBoardId() { return boardId; }
-
-      /** create channel objects **/
-      TPLEIADESFebChannel* GetChannel(UInt_t index)
+      /** get channel objects created with board **/
+      TPLEIADESFebChannel* GetChannel(UInt_t id)
       {
-         return (TPLEIADESFebChannel*) getEventElement(index);
+         return (TPLEIADESFebChannel*) getEventElement(id);
       }
 
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *opt = "") override;
 
    private:
-
-      /** board ID for tracking object **/
-      UInt_t boardId;
 
       /** check sequence number of events and report missing events **/
       Int_t fLastEventNumber;
@@ -102,27 +96,19 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent {
       TPLEIADESRawEvent(const char *name, Short_t id=0);
       virtual ~TPLEIADESRawEvent();
 
+      /** get board objects created with output event **/
+      TPLEIADESFebBoard* GetBoard(UInt_t id)
+      {
+         return (TPLEIADESFebBoard*) getEventElement(id);
+      }
+
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *opt = "") override;
 
-      /** access to board ID number **/
-      TPLEIADESFebBoard* GetBoard(UInt_t boardId);
-
       /** Event sequence number incremented by MBS Trigger*/
-       Int_t fSequenceNumber;
+      Int_t fSequenceNumber;
 
-      /** Example: put corrected Energy from filter for each channel here */
-      //Double_t fE_FPGA_Trapez[MAX_SFP][MAX_SLAVE][N_CHA];
-
-/**
-#ifdef TPLEIADES_FILL_TRACES
-      std::vector<Double_t> fTrace[MAX_SFP][MAX_SLAVE][N_CHA];
-      std::vector<Double_t> fTraceBLR[MAX_SFP][MAX_SLAVE][N_CHA];
-      std::vector<Double_t> fTrapezFPGA[MAX_SFP][MAX_SLAVE][N_CHA];
-#endif
-**/
-
-   ClassDefOverride(TPLEIADESRawEvent,1)
-};
+    ClassDefOverride(TPLEIADESRawEvent,1)
+ };
 
 #endif

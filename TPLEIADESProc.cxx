@@ -259,7 +259,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   }
 
   // checks WR time stamp. 5 first 32 bits must be white rabbit time stamp
-  #ifdef WR_TIME_STAMP
+#ifdef WR_TIME_STAMP
   l_dat = *pl_tmp++;
   // sub system ID commented because timesorter means we have 3 IDs
 /*
@@ -299,7 +299,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_X16, l_dat);
     printf ("WR_TIME_STAMP is activated, but timestamp is throwing errors. Perhaps WR_TIME_STAMP should be turned off?\n");
   }
-  #endif // WR_TIME_STAMP
+#endif // WR_TIME_STAMP
 
   //-----------------------------------------------------------
   // extract analysis parameters from MBS data 
@@ -765,7 +765,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     }
     else	// if data word not padding or channel header, throw error
     {
-      //printf ("ERROR>> data word neither channel header nor padding word \n");
+      printf ("ERROR>> data word neither channel header nor padding word \n");
     }       
   }
   //----------------------------------------------------------
@@ -794,10 +794,6 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
               l_value=(Double_t)l_fpga_e[l_i][l_j][l_k] / (Double_t)l_trapez_e[l_i][l_j][l_k];
             h_corr_e_fpga_trapez[l_i][l_j][l_k]->Fill(l_value);
             //printf ("Energy FPGA / Energy Trace: %1.10f \n",l_value);
-
-            // JAM 12-12-2023: EXAMPLE -put evaluated energy for each channel to output event here:
-            //fOutEvent->fE_FPGA_Trapez[l_i][l_j][l_k]=l_value;
-            //fOutEvent->SetValid(kTRUE);
           }
         }
       }
@@ -808,27 +804,23 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   //----------------------------------------------------------
   // filling output events
   //----------------------------------------------------------
-  for (l_i=0; l_i<MAX_SFP; ++l_i)
+  for(l_i=0; l_i<MAX_SFP; ++l_i)
   {
-    if (l_sfp_slaves[l_i] != 0)
+    if(l_sfp_slaves[l_i] != 0)
     {
-       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       for(l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
        {
           TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(l_j);
-          if (theBoard == 0)
-          {
-             GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist", l_j)
-             return kFALSE;
-          }
 
-          for (l_k=0; l_k < theBoard->getNElements(); l_k++)
+          UInt_t nChan = theBoard->getNElements();
+          if (nChan != N_CHA)
+          {
+              GO4_SKIP_EVENT_MESSAGE("Config error: board NElements not equal to N_CHA")
+              return kFALSE;
+          }
+          for(l_k=0; l_k<nChan; l_k++)
           {
              TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
-             if (theChannel == 0)
-             {
-                GO4_SKIP_EVENT_MESSAGE("Configuration error: Channel at board %d ch %d does not exist", l_j, l_k)
-                return kFALSE;
-             }
 
              theChannel->fFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
              theChannel->fFGPAHitTime = l_fpga_hitti[l_i][l_j][l_k];
@@ -866,45 +858,6 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
   }
   fOutEvent->SetValid(kTRUE);
 
-/**
-  //----------------------------------------------------------
-  // JAM 12/2023: copy here values to output event for optional ROOT tree storage
-  //----------------------------------------------------------
-  #ifdef TPLEIADES_FILL_TRACES
-  for (l_i=0; l_i<MAX_SFP; l_i++)
-   {
-     if (l_sfp_slaves[l_i] != 0)
-     {
-       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
-       {
-         for (l_k=0; l_k<N_CHA; l_k++)
-         {
-
-             for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
-             {
-                 l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-                 fOutEvent->fTrace[l_i][l_j][l_k].push_back(l_value);
-             }
-
-             for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
-             {
-               l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
-               fOutEvent->fTraceBLR[l_i][l_j][l_k].push_back(l_value);
-             }
-
-             for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
-             {
-               l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-               fOutEvent->fTrapezFPGA[l_i][l_j][l_k].push_back(l_value);
-             }
-         }// l_k
-       }// l_j
-     }// if (l_sfp_slaves
-   } // l_i
-  fOutEvent->SetValid(kTRUE);
-  #endif
-  //printf ("check next event \n"); sleep (1);
-**/
   bad_event:
 
   //----------------------------------------------------------
