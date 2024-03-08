@@ -810,7 +810,11 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
     {
        for(l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
        {
-          TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(l_j);
+          //get board ID at array position from Go4 parameter fBoardID
+          UInt_t brdID = fPar->fBoardID[l_i][l_j];
+          printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID);
+
+          TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(brdID);
 
           UInt_t nChan = theBoard->getNElements();
           if (nChan != N_CHA)

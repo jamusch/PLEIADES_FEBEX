@@ -65,8 +65,11 @@ class TPLEIADESFebChannel : public TGo4EventElement {
 class TPLEIADESFebBoard : public TGo4CompositeEvent {
    public:
       TPLEIADESFebBoard();
-      TPLEIADESFebBoard(const char *name, Short_t id);
+      TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t id);
       virtual ~TPLEIADESFebBoard();
+
+      /** get unique ID of board in setup **/
+      UInt_t GetBoardID() { return fUniqueId; }
 
       /** get channel objects created with board **/
       TPLEIADESFebChannel* GetChannel(UInt_t id)
@@ -77,7 +80,12 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent {
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *opt = "") override;
 
+      Int_t GetLastEventNumber() { return fLastEventNumber; }
+      void SetLastEventNumber(Int_t num) { fLastEventNumber = num; }
+
    private:
+      /** unique id of the board, as set by TPLEIADESParam::SetConfigBoards **/
+      UInt_t fUniqueId;
 
       /** check sequence number of events and report missing events **/
       Int_t fLastEventNumber;
@@ -96,16 +104,16 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent {
       TPLEIADESRawEvent(const char *name, Short_t id=0);
       virtual ~TPLEIADESRawEvent();
 
-      /** get board objects created with output event **/
-      TPLEIADESFebBoard* GetBoard(UInt_t id)
-      {
-         return (TPLEIADESFebBoard*) getEventElement(id);
-      }
-
-      /** Method called by the framework to clear the event element. */
+      /** Method called by the framework to clear the event element. **/
       void Clear(Option_t *opt = "") override;
 
-      /** Event sequence number incremented by MBS Trigger*/
+      /** access to board subcomponent by unique id **/
+      TPLEIADESFebBoard* GetBoard(UInt_t unid);
+
+      /** this array keeps the unique id numbers of configured FEBEX boards **/
+      static std::vector<UInt_t> fgConfigBoards;
+
+      /** Event sequence number incremented by MBS Trigger **/
       Int_t fSequenceNumber;
 
     ClassDefOverride(TPLEIADESRawEvent,1)
