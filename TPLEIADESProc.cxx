@@ -90,6 +90,8 @@ TPLEIADESProc::TPLEIADESProc(const char* name) : TGo4EventProcessor(name)
 {
   cout << "**** TPLEIADESProc: Create instance " << name << endl;
   fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
+  if (fPar)
+     fPar->SetConfigBoards();
   //printf ("Histograms created \n");  fflush (stdout);
 }
 
@@ -812,7 +814,7 @@ Bool_t TPLEIADESProc::BuildEvent(TGo4EventElement* target)
        {
           //get board ID at array position from Go4 parameter fBoardID
           UInt_t brdID = fPar->fBoardID[l_i][l_j];
-          printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID);
+          //printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID);
 
           TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(brdID);
 
