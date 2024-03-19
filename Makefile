@@ -7,7 +7,7 @@ include $(GO4SYS)/Makefile.config
 ## normally should be like this for every module, but can be specific
 
 # uncoment this to get line numbers from debugger in case of crash:
-DOOPTIMIZATION=false
+#DOOPTIMIZATION=false
 
 
 ifdef GO4PACKAGE
