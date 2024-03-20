@@ -1,40 +1,44 @@
-//-----------------------------------------------------------------------
-//************************* TPLEIADESAnalysis.h *************************
-//-----------------------------------------------------------------------
+//------------------------------------------------------------------------
+//************************* TPLEIADESAnalysis.h **************************
+//------------------------------------------------------------------------
 //       The GSI Online Offline Object Oriented (Go4) Project
 //         Experiment Data Processing at EE department, GSI
-//-----------------------------------------------------------------------
+//------------------------------------------------------------------------
 // Copyright (C) 2000- GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
 //                     Planckstr. 1, 64291 Darmstadt, Germany
 // Contact:            http://go4.gsi.de
-//-----------------------------------------------------------------------
+//------------------------------------------------------------------------
 // This software can be used under the license agreements as stated
 // in Go4License.txt file which is part of the distribution.
-//-----------------------------------------------------------------------
+//------------------------------------------------------------------------
 
-#ifndef TPLEIADESAnalysis_H
-#define TPLEIADESAnalysis_H
+#ifndef TPLEIADESANALYSIS_H
+#define TPLEIADESANALYSIS_H
 
 #include "TGo4Analysis.h"
 
 class TGo4MbsEvent;
 class TPLEIADESControl;
 
-class TPLEIADESAnalysis : public TGo4Analysis {
-   public:
-      TPLEIADESAnalysis();
-      TPLEIADESAnalysis(int argc, char **argv);
-      virtual ~TPLEIADESAnalysis();
-      Int_t UserPreLoop() override;
-      Int_t UserEventFunc() override;
-      Int_t UserPostLoop() override;
-   private:
-      TGo4MbsEvent  *fMbsEvent{nullptr};
-      TPLEIADESControl   *fCtl{nullptr};
-      Int_t          fEvents{0};
-      Int_t          fLastEvent{0};
+class TPLEIADESAnalysis : public TGo4Analysis
+{
+    public:
+        TPLEIADESAnalysis();
+        TPLEIADESAnalysis(int argc, char **argv);
+        virtual ~TPLEIADESAnalysis();
+        Int_t UserPreLoop() override;
+        Int_t UserEventFunc() override;
+        Int_t UserPostLoop() override;
+    private:
+        TGo4MbsEvent  *fMbsEvent{nullptr};
+        TPLEIADESControl   *fCtl{nullptr};
+        Int_t          fEvents{0};
+        Int_t          fLastEvent{0};
 
-   ClassDefOverride(TPLEIADESAnalysis,1)
+    ClassDefOverride(TPLEIADESAnalysis,1)
 };
 
-#endif //TANALYSIS_H
+#endif //TPLEIADESANALYSIS_H
+
+//----------------------------END OF GO4 SOURCE FILE ---------------------
+

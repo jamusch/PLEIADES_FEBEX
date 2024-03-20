@@ -19,11 +19,26 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class TPLEIADESpStrip+;
+#pragma link C++ class TPLEIADESnSide+;
+#pragma link C++ class TPLEIADESSiPad+;
+
+#pragma link C++ class TPLEIADESResistEnd+;
+#pragma link C++ class TPLEIADESNormPos+;
+#pragma link C++ class TPLEIADESDSSD+;
+
+#pragma link C++ class TPLEIADESCrySide+;
+#pragma link C++ class TPLEIADESCrystal+;
+
+#pragma link C++ class TPLEIADESDetEvent+;
+#pragma link C++ class TPLEIADESDetProc+;
+
 #pragma link C++ class TPLEIADESFebChannel+;
 #pragma link C++ class TPLEIADESFebBoard+;
 
 #pragma link C++ class TPLEIADESRawEvent+;
-#pragma link C++ class TPLEIADESProc+;
+#pragma link C++ class TPLEIADESRawProc+;
+
 #pragma link C++ class TPLEIADESParam+;
 
 #pragma link C++ class TPLEIADESAnalysis+;
