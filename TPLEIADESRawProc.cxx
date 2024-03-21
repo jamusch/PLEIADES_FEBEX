@@ -84,7 +84,6 @@ TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
     {
         fPar->SetConfigBoards();
     }
-    //printf ("Histograms created \n");  fflush (stdout);
 }
 
 //------------------------------------------------------------------------

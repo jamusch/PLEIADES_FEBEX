@@ -90,7 +90,7 @@ TPLEIADESDetector::~TPLEIADESDetector()
     TGo4Log::Info("TPLEIADESDetector: Delete instance");
 }
 
-void TPLEIADESDetEvent::Clear(Option_t *opt)
+void TPLEIADESDetector::Clear(Option_t *opt)
 {
     TGo4CompositeEvent::Clear();
 }
@@ -110,11 +110,66 @@ TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
     TGo4CompositeEvent(name, name, id)
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance %s with composite ID %d", name, id);
+
+    SetupDetectors();
 }
 
 TPLEIADESDetEvent::~TPLEIADESDetEvent()
 {
     TGo4Log::Info("TPLEIADESDetEvent: Delete instance");
+}
+
+void TPLEIADESDetEvent::SetupDetectors()      //construct detectors based on fDetNameVec list
+{
+    if(!fPar)
+    {
+        TGo4Log::Warn("fPar not set! Need parameter to access detector setup.")
+        return;
+    }
+
+    int index = 0;
+    for(const TString& dname : fPar->fDetNameVec)
+    {
+        TPLEIADESDetector* theDetector = TPLEIADESDetector(dname, index);
+        theDetector->SetDetName(dname);
+        theDetector->SetDetType(fPar->fDetTypeMap[dname]);
+
+        if( (theDetector->GetDetType()) == "SiPad" )
+        {
+            //do some stuff to create Si Pad channels
+        }
+        else if( (theDetector->GetDetType()) == "DSSD" )
+        {
+            // setup the DSSD
+        }
+        else if( (theDetector->GetDetType()) == "Crystal" )
+        {
+            // setup the Crystal
+        }
+        else
+        {
+            TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be set up.", dname)
+            return;
+        }
+
+        addEventElement(theDetector);
+        index++
+    }
+}
+
+TPLEIADESDetector* TPLEIADESDetEvent::GetDetector(TString dname)
+{
+    TPLEIADESDetector* theDetector = 0;
+    Short_t numDets = getNElements();
+    for(int i=0; i<numDets; ++i)
+    {
+        theDetector = (TPLEIADESDetector*) getEventElement(i);
+        if(theDetector->GetDetName() == dname)
+        {
+            return theDetector;
+        }
+    }
+    return 0;
 }
 
 void TPLEIADESDetEvent::Clear(Option_t *opt)

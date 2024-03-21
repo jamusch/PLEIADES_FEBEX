@@ -47,12 +47,12 @@ class TPLEIADESFebChannel : public TGo4EventElement
         std::vector<Int_t> fFPGATRAPEZ;
 
         /** FEBEX trace properties **/
-#ifdef TPLEIADES_FILL_TRACES
+        #ifdef TPLEIADES_FILL_TRACES
         UInt_t fTrapezEnergy;
         std::vector<UInt_t>  fTrace;
         std::vector<Int_t>   fTraceBLR;
         std::vector<Int_t>   fTraceTRAPEZ;
-#endif
+        #endif
 
     ClassDefOverride(TPLEIADESFebChannel,1)
 };
@@ -85,11 +85,8 @@ class TPLEIADESFebBoard : public TGo4CompositeEvent
         void SetLastEventNumber(Int_t num) { fLastEventNumber = num; }
 
     private:
-        /** unique id of the board, as set by TPLEIADESParam::SetConfigBoards **/
-        UInt_t fUniqueId;
-
-        /** check sequence number of events and report missing events **/
-        Int_t fLastEventNumber;
+        UInt_t fUniqueId;           // unique id of the board, as set by TPLEIADESParam::SetConfigBoards
+        Int_t  fLastEventNumber;    // check sequence number of events and report missing events
 
     ClassDefOverride(TPLEIADESFebBoard,1)
 };
@@ -115,8 +112,7 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent
         /** this array keeps the unique id numbers of configured FEBEX boards **/
         static std::vector<UInt_t> fgConfigBoards;
 
-        /** Event sequence number incremented by MBS Trigger **/
-        Int_t fSequenceNumber;
+        Int_t fSequenceNumber;      // event sequence number incremented by MBS Trigger
 
     ClassDefOverride(TPLEIADESRawEvent,1)
 };

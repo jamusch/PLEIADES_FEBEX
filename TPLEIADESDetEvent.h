@@ -29,9 +29,9 @@ class TPLEIADESDetChan : public TGo4EventElement
         virtual ~TPLEIADESDetChan();
 
         /** Method called by the framework to clear the event element. **/
-        void Clear(Option_t *opt = "") override;
+        void Clear(Option_t *opt = "");
 
-        ClassDef(TPLEIADESDetChan, 1)
+    ClassDef(TPLEIADESDetChan, 1)
 };
 
 //------------------------------------------------------------------------
@@ -46,9 +46,9 @@ class TPLEIADESNormPos : public TGo4EventElement
         virtual ~TPLEIADESNormPos();
 
         /** Method called by the framework to clear the event element. **/
-        void Clear(Option_t *opt = "") override;
+        void Clear(Option_t *opt = "");
 
-        ClassDef(TPLEIADESNormPos, 1)
+    ClassDef(TPLEIADESNormPos, 1)
 };
 
 //------------------------------------------------------------------------
@@ -62,10 +62,22 @@ class TPLEIADESDetector : public TGo4CompositeEvent
         TPLEIADESDetector(const char* name, Short_t id=0);
         virtual ~TPLEIADESDetector();
 
-        /** Method called by the framework to clear the event element. **/
-        void Clear(Option_t *opt = "") override;
+        /** actions on unique name of detector **/
+        void SetDetName(TString dname) { fDetName = dname ; }
+        TString GetDetName() { return fDetName; }
 
-        ClassDef(TPLEIADESDetector, 1)
+        /** actions on type of detector **/
+        void SetDetType(TString dtype) { fDetType = dtype; }
+        TString GetDetType() { return fDetType; }
+
+        /** Method called by the framework to clear the event element. **/
+        void Clear(Option_t *opt = "");
+
+    private:
+        TString fDetName;       // detector name setup in set_PLEIADESParam.C
+        TString fDetType;       // detector type
+
+    ClassDef(TPLEIADESDetector, 1)
 };
 
 //------------------------------------------------------------------------
@@ -80,7 +92,13 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
         virtual ~TPLEIADESDetEvent();
 
         /** Method called by the framework to clear the event element. **/
-        void Clear(Option_t *opt = "") override;
+        void Clear(Option_t *opt = "");
+
+        /** access to board subcomponent by unique id **/
+        TPLEIADESDetector* GetDetector(TString dname);
+
+        /** this array keeps the unique names of configured detectors **/
+        static std::vector<TString> fgConfigDetectors;
 
     ClassDef(TPLEIADESDetEvent, 1)
 };

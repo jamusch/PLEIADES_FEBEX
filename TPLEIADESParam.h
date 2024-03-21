@@ -15,6 +15,8 @@
 #ifndef TPLEIADESPARAM_H
 #define TPLEIADESPARAM_H
 
+#include <map>
+#include <vector>
 #include "TGo4Parameter.h"
 #include "TPLEIADESRawEvent.h"
 
@@ -29,9 +31,18 @@ class TPLEIADESParam : public TGo4Parameter
 
         Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
-        Int_t fBoardID[MAX_SFP][MAX_SLAVE];   // boardID to handle multiple SFP chains
-        void InitBoardMapping();              // initialise to non-valid mapping
-        Bool_t SetConfigBoards();             // copy board IDs to event members
+        // parameters for step1 - unpacking to FEBEX board format
+        Int_t fBoardID[MAX_SFP][MAX_SLAVE];     // boardID to handle multiple SFP chains
+        void InitBoardMapping();                // initialise to empty mapping
+        Bool_t SetConfigBoards();               // copy board IDs to event members
+
+        // parameters for step2 - grouping by Detectors
+        std::vector<TString> fDetNameVec;      // list of detector names
+        std::map<TString, TString> fDetTypeMap;// a map of names to detector types
+        std::map<TString, UInt_t> fpSideMap;   // a map of names to Si Pad p-side positions
+        std::map<TString, UInt_t> fnSideMap;   // a map of names to Si Pad n-side positions
+        UInt_t fDSSDMap[4];                    // a list of DSSD channel positions
+        UInt_t fCrystalMap[2];                 // a list of Crystal channel positions
 
     ClassDef(TPLEIADESParam,1)
 };
