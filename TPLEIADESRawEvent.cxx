@@ -13,7 +13,6 @@
 //------------------------------------------------------------------------
 
 #include "TPLEIADESRawEvent.h"
-
 #include "TGo4Log.h"
 
 //------------------------------------------------------------------------
@@ -46,11 +45,12 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
     fFPGATRAPEZ.clear();
 
     /** FEBEX trace properties **/
-#ifdef TPLEIADES_FILL_TRACES
+    #ifdef TPLEIADES_FILL_TRACES
+    fTrapezEnergy = 0;
     fTrace.clear();
     fTraceBLR.clear();
     fTraceTRAPEZ.clear();
-#endif
+    #endif
 }
 
 //------------------------------------------------------------------------
@@ -72,7 +72,7 @@ TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t id) 
     TString modname;
     for (int i=0; i<N_CHA; ++i)
     {
-        modname.Form("PLEIADES_Bd%02d_Ch%02d", fUniqueId, i);
+        modname.Form("PLEIADES_Bd%x_Ch%02d", fUniqueId, i);
         addEventElement(new TPLEIADESFebChannel(modname.Data(), i));
     }
 }
@@ -110,7 +110,7 @@ TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
     for (unsigned i=0; i<TPLEIADESRawEvent::fgConfigBoards.size(); ++i)
     {
         unid = TPLEIADESRawEvent::fgConfigBoards[i];
-        modname.Form("PLEIADES_Board_%02d", unid);
+        modname.Form("PLEIADES_Board_%x", unid);
         addEventElement(new TPLEIADESFebBoard(modname.Data(), unid, i));
     }
 }

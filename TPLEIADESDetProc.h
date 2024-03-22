@@ -15,11 +15,30 @@
 #ifndef TPLEIADESDETPROC_H
 #define TPLEIADESDETPROC_H
 
+#include "TGo4EventProcessor.h"
+#include "TPLEIADESRawEvent.h"
+#include "TPLEIADESDetEvent.h"
+#include "TPLEIADESParam.h"
+
+class TPLEIADESParam;
 
 class TPLEIADESDetProc
 {
-public:
-    TPLEIADESDetProc();
+    public:
+        TPLEIADESDetProc() ;
+        TPLEIADESDetProc(const char* name);
+        virtual ~TPLEIADESDetProc() ;
+
+        Bool_t BuildEvent(TGo4EventElement* target); // event processing function
+
+    private:
+        /** parameter for runtime settings*/
+        TPLEIADESParam* fPar;
+
+        /** reference to output data*/
+        TPLEIADESDetEvent* fOutEvent;  //!
+
+    ClassDef(TPLEIADESDetProc, 1)
 };
 
 #endif // TPLEIADESDETPROC_H

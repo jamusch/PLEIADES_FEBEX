@@ -69,18 +69,6 @@ Bool_t TPLEIADESParam::SetConfigBoards()
         }
     }
     return kTRUE;
-}
-
-Bool_t TPLEIADESParam::SetConfigDetectors()
-{
-    TPLEIADESDetEvent::fgConfigDetectors.clear();
-    for(const TString& dname : fDetNameVec)
-        TPLEIADESDetEvent::fgConfigDetectors.push_back(dname);
-        TGo4Log::Info("TPLEIADESParam::SetConfigDetectors registers a detector with name %s \n", dname);
-        }
-    }
-    return kTRUE;
-}
 
 //-----------------------------------------------------------------------
 // this is the update function that interfaces with the Go4 GUI
@@ -103,7 +91,6 @@ Bool_t TPLEIADESParam::UpdateFrom(TGo4Parameter *pp)
     }
 
     SetConfigBoards();
-    SetConfigDetectors();
     return kTRUE;
 }
 

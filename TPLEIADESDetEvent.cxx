@@ -13,7 +13,6 @@
 //------------------------------------------------------------------------
 
 #include "TPLEIADESDetEvent.h"
-
 #include "TGo4Log.h"
 
 //------------------------------------------------------------------------
@@ -39,7 +38,19 @@ TPLEIADESDetChan::~TPLEIADESDetChan()
 
 void TPLEIADESDetChan::Clear(Option_t *opt)
 {
+    // all members should be cleared, i.e. assigned to a "not filled" value
+    /** FEBEX special channel properties **/
+    fFPGAEnergy = 0;
+    fFGPAHitTime = 0;
+    fFPGATRAPEZ.clear();
 
+    /** FEBEX trace properties **/
+    #ifdef TPLEIADES_FILL_TRACES
+    fTrapezEnergy = 0;
+    fTrace.clear();
+    fTraceBLR.clear();
+    fTraceTRAPEZ.clear();
+    #endif
 }
 
 
@@ -90,6 +101,70 @@ TPLEIADESDetector::~TPLEIADESDetector()
     TGo4Log::Info("TPLEIADESDetector: Delete instance");
 }
 
+void TPLEIADESDetector::SetupDetector()    // builds detector channels based on type of detector
+{
+    TString modname;
+
+    if(fDetType == "SiPad")         // create Si Pad channels
+    {
+        // setup p-sides
+        for (int j=0; j<7; ++j)
+        {
+            modname.Form("%s_pStrip%02d", fDetName, j);
+            TPLEIADESDetChan *pStrip = TPLEIADESDetChan(modname.Data(), j);
+            pStrip->SetChanMap(fPar->fpSideMap[fDetName] + j);
+            pStrip->SetChanType("pStrip");
+            addEventElement(pStrip);
+        }
+        // setup n-side
+        modname.Form("%s_nSide", fDetName);
+        TPLEIADESDetChan *nSide = TPLEIADESDetChan(modname.Data(), 7);
+        nSide->SetChanMap(fPar->fnSideMap[fDetName]);
+        nSide->SetChanType("nSide");
+        addEventElement(nSide);
+    }
+    else if(fDetType == "DSSD")     // setup the DSSD
+    {
+        // setup raw DSSD channels
+        TString *dssdNames[4] = {"FrntLft", "FrntRgt", "BackTop", "BackBot"};
+        for(int j=0; j<4; ++j)
+        {
+            modname.Form("%s_%s", fDetName, dssdNames[j]);
+            TPLEIADESDetChan *dssdChan = TPLEIADESDetChan(modname.Data(), j);
+            dssdChan->SetChanMap(fPar->fDSSDPos[j]);
+            dssdChan->SetChanType("dssdChan");
+            addEventElement(dssdChan)
+        }
+        // setup secondary channels for Normalised Position calculation
+        TString *posNames[2] = {"NormPosX", "NormPosY"};
+        for(int j=0; j<2; ++j)
+        {
+            modname.Form("%s_%s", fDetName, posNames[j]);
+            TPLEIADESNormPos *posChan = TPLEIADESNormPos(modname.Data(), j+4);
+            addEventElement(posChan)
+        }
+
+    }
+    else if(fDetType == "Crystal")  // setup the Crystal
+    {
+        // setup Crystal photodiode outputs
+        TString *crysNames[2] = {"CrysFrnt", "CrysBack"}
+        for(int j=0; j<2; ++j)
+        {
+            modname.Form("%s_%s", fDetName, crysNames[j]);
+            TPLEIADESDetChan *crysChan = TPLEIADESDetChan(modname.Data(), j);
+            crysChan->SetChanMap(fPar->fCrystalPos[j]);
+            crysChan->SetChanType("crysChan");
+            addEventElement(crysChan);
+        }
+    }
+    else
+    {
+        TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be set up.", dname)
+        return;
+    }
+}
+
 void TPLEIADESDetector::Clear(Option_t *opt)
 {
     TGo4CompositeEvent::Clear();
@@ -111,6 +186,7 @@ TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance %s with composite ID %d", name, id);
 
+    BuildDetectors();
     SetupDetectors();
 }
 
@@ -119,7 +195,7 @@ TPLEIADESDetEvent::~TPLEIADESDetEvent()
     TGo4Log::Info("TPLEIADESDetEvent: Delete instance");
 }
 
-void TPLEIADESDetEvent::SetupDetectors()      //construct detectors based on fDetNameVec list
+void TPLEIADESDetEvent::BuildDetectors()      //construct detectors based on fDetNameVec list
 {
     if(!fPar)
     {
@@ -133,25 +209,7 @@ void TPLEIADESDetEvent::SetupDetectors()      //construct detectors based on fDe
         TPLEIADESDetector* theDetector = TPLEIADESDetector(dname, index);
         theDetector->SetDetName(dname);
         theDetector->SetDetType(fPar->fDetTypeMap[dname]);
-
-        if( (theDetector->GetDetType()) == "SiPad" )
-        {
-            //do some stuff to create Si Pad channels
-        }
-        else if( (theDetector->GetDetType()) == "DSSD" )
-        {
-            // setup the DSSD
-        }
-        else if( (theDetector->GetDetType()) == "Crystal" )
-        {
-            // setup the Crystal
-        }
-        else
-        {
-            TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be set up.", dname)
-            return;
-        }
-
+        theDetector->SetupDetector();
         addEventElement(theDetector);
         index++
     }

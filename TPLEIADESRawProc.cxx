@@ -31,6 +31,7 @@ using namespace std;
 #include "TGo4Picture.h"
 
 #include "TGo4UserException.h"
+#include "TGo4Log.h"
 
 #include "TPLEIADESRawEvent.h"
 #include "TPLEIADESParam.h"
@@ -63,13 +64,13 @@ static UInt_t    l_first2 = 0;
 //------------------------------------------------------------------------
 TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc")
 {
-    cout << "**** TPLEIADESRawProc: Create instance " << endl;
+    TGo4Log::Info("TPLEIADESRawProc: Create instance ");
 }
 
 //------------------------------------------------------------------------
 TPLEIADESRawProc::~TPLEIADESRawProc()
 {
-    cout << "**** TPLEIADESRawProc: Delete instance " << endl;
+    TGo4Log::Info("TPLEIADESRawProc: Delete instance ");
     l_first  = 0; // JAM 13-Dec-2024: need to reset these flags to renew histogram handles when resubmitted from GUI!
     l_first2 = 0;
 }
@@ -78,7 +79,7 @@ TPLEIADESRawProc::~TPLEIADESRawProc()
 // this one is used in standard factory
 TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
 {
-    cout << "**** TPLEIADESRawProc: Create instance " << name << endl;
+    TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
     fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
     if(fPar)
     {
@@ -849,7 +850,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
             }
         }
     }
-    fOutEvent->SetValid(kTRUE);
+    fOutEvent->SetValid(kTRUE);     // now event is filled, store event
 
     bad_event:
 
