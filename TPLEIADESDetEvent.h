@@ -18,6 +18,8 @@
 #include "TGo4CompositeEvent.h"
 #include "TPLEIADESRawEvent.h"
 
+class TPLEIADESParam;
+
 //------------------------------------------------------------------------
 // TPLEIADESDetChan is a dependent class on TPLEIADESDetector. It represents an output channel on the detector.
 //------------------------------------------------------------------------
@@ -41,16 +43,16 @@ class TPLEIADESDetChan : public TGo4EventElement
         TString GetChanType() { return fChanType; }
 
         /** FEBEX special channel properties **/
-        UInt_t fFPGAEnergy;
-        Int_t fFGPAHitTime;
-        std::vector<Int_t> fFPGATRAPEZ;
+        UInt_t fDFPGAEnergy;
+        Int_t fDFGPAHitTime;
+        std::vector<Int_t> fDFPGATRAPEZ;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
-        UInt_t fTrapezEnergy;
-        std::vector<UInt_t>  fTrace;
-        std::vector<Int_t>   fTraceBLR;
-        std::vector<Int_t>   fTraceTRAPEZ;
+        UInt_t fDTrapezEnergy;
+        std::vector<UInt_t>  fDTrace;
+        std::vector<Int_t>   fDTraceBLR;
+        std::vector<Int_t>   fDTraceTRAPEZ;
         #endif
 
     private:
@@ -104,15 +106,13 @@ class TPLEIADESDetector : public TGo4CompositeEvent
         void SetupDetector();      // setup channels based on name and type
 
         /** get channel objects created with board **/
-        TPLEIADESDetChan* GetChannel(UInt_t id)
-        {
-            return (TPLEIADESDetChan*) getEventElement(id);
-        }
-
-
+        TPLEIADESDetChan* GetChannel(UInt_t id) { return (TPLEIADESDetChan*) getEventElement(id); }
+        TPLEIADESNormPos* GetNormPos(UInt_t id) { return (TPLEIADESNormPos*) getEventElement(id); }
 
         /** Method called by the framework to clear the event element. **/
         void Clear(Option_t *opt = "");
+
+        static TPLEIADESParam* fParDet; // required to use fPar in DetEvent construction
 
     private:
         TString fDetName;       // detector name setup in set_PLEIADESParam.C
@@ -141,6 +141,8 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
 
         /** this array keeps the unique names of configured detectors **/
         static std::vector<TString> fgConfigDetectors;
+
+        static TPLEIADESParam* fParDEv; // required to use fPar in DetEvent construction
 
     ClassDef(TPLEIADESDetEvent, 1)
 };

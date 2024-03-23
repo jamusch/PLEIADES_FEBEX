@@ -37,12 +37,10 @@ TPLEIADESParam::TPLEIADESParam(const char* name) : TGo4Parameter(name)
 
 TPLEIADESParam::~TPLEIADESParam()
 {
+
 }
 
-//-----------------------------------------------------------------------
-// these functions govern the board id mapping. this functionality is so
-// boards in multiple SFPs can be written out, if necessary.
-//-----------------------------------------------------------------------
+// these functions govern the board id mapping. this functionality is so boards in multiple SFPs can be written out, if necessary.
 
 void TPLEIADESParam::InitBoardMapping()
 {
@@ -65,10 +63,19 @@ Bool_t TPLEIADESParam::SetConfigBoards()
             Int_t bid = fBoardID[sfp][brd];
             if(bid < 0) continue;
             TPLEIADESRawEvent::fgConfigBoards.push_back(bid);
-            TGo4Log::Info("TPLEIADESParam::SetConfigBoards registers board unique ID %u configured at SFP %d Board %d \n", bid, sfp, brd);
+            TGo4Log::Info("TPLEIADESParam::SetConfigBoards registers board unique ID 0x%x configured at SFP %d Board %d", bid, sfp, brd);
         }
     }
     return kTRUE;
+}
+
+// this function connects the fParDet and fParDEv of TPLEIADESDetEvent to the current fPar being used
+Bool_t TPLEIADESParam::SetConfigDetEvent()
+{
+    TPLEIADESDetector::fParDet = this;
+    TPLEIADESDetEvent::fParDEv = this;
+    return kTRUE;
+}
 
 //-----------------------------------------------------------------------
 // this is the update function that interfaces with the Go4 GUI

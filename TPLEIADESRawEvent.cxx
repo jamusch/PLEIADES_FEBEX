@@ -40,16 +40,16 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
     /** FEBEX special channel properties **/
-    fFPGAEnergy = 0;
-    fFGPAHitTime = 0;
-    fFPGATRAPEZ.clear();
+    fRFPGAEnergy = 0;
+    fRFGPAHitTime = 0;
+    fRFPGATRAPEZ.clear();
 
     /** FEBEX trace properties **/
     #ifdef TPLEIADES_FILL_TRACES
-    fTrapezEnergy = 0;
-    fTrace.clear();
-    fTraceBLR.clear();
-    fTraceTRAPEZ.clear();
+    fRTrapezEnergy = 0;
+    fRTrace.clear();
+    fRTraceBLR.clear();
+    fRTraceTRAPEZ.clear();
     #endif
 }
 
@@ -66,7 +66,7 @@ TPLEIADESFebBoard::TPLEIADESFebBoard() :
 TPLEIADESFebBoard::TPLEIADESFebBoard(const char *name, UInt_t unid, Short_t id) :
     TGo4CompositeEvent(name, name, id), fUniqueId(unid), fLastEventNumber(-1)
 {
-    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s with unique ID %d, composite ID %d", name, unid, id);
+    TGo4Log::Info("TPLEIADESFebBoard: Create instance %s with unique ID 0x%x, composite ID %d", name, unid, id);
 
     //create channels for FEBEX board
     TString modname;
@@ -102,7 +102,7 @@ TPLEIADESRawEvent::TPLEIADESRawEvent() :
 TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
     TGo4CompositeEvent(name, name, id), fSequenceNumber(-1)
 {
-    TGo4Log::Info("TPLEIADESRawEvent: Create instance %s with composite ID %d", name, id);
+    TGo4Log::Info("TPLEIADESRawEvent: Create instance %s with composite ID 0x%x", name, id);
 
     //create boards based on fgConfigBoards list
     TString modname;
@@ -110,7 +110,7 @@ TPLEIADESRawEvent::TPLEIADESRawEvent(const char *name, Short_t id) :
     for (unsigned i=0; i<TPLEIADESRawEvent::fgConfigBoards.size(); ++i)
     {
         unid = TPLEIADESRawEvent::fgConfigBoards[i];
-        modname.Form("PLEIADES_Board_%x", unid);
+        modname.Form("PLEIADES_Board_0x%x", unid);
         addEventElement(new TPLEIADESFebBoard(modname.Data(), unid, i));
     }
 }

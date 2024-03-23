@@ -39,9 +39,10 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
 
     TGo4Log::Info("Create TPLEIADESAnalysis name: %s", argv[0]);
 
-    TGo4StepFactory* factory = new TGo4StepFactory("Factory");
-    factory->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");// object name, class name
-    factory->DefOutputEvent("PLEIADESRawEvent","TPLEIADESRawEvent"); // object name, class name
+    // Create step 1: RawEvent unpacking
+    TGo4StepFactory* factory1 = new TGo4StepFactory("Raw Unpacking Factory");
+    factory1->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");   // object name, class name
+    factory1->DefOutputEvent("PLEIADESRawEvent","TPLEIADESRawEvent");    // object name, class name
 
     TGo4EventSourceParameter *sourcepar = new TGo4MbsFileParameter(GetDefaultTestFileName());
 
@@ -49,16 +50,25 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     TGo4FileStoreParameter* storepar = new TGo4FileStoreParameter(parname.Data());
     storepar->SetOverwriteMode(kTRUE);
 
-    TGo4AnalysisStep *step1 = new TGo4AnalysisStep("Analysis", factory, sourcepar, storepar);
-
+    TGo4AnalysisStep *step1 = new TGo4AnalysisStep("Raw Unpacking", factory1, sourcepar, storepar);
     step1->SetSourceEnabled(kTRUE);
     step1->SetStoreEnabled(kFALSE);
     step1->SetProcessEnabled(kTRUE);
     step1->SetErrorStopEnabled(kTRUE);
-
-    // Now the first analysis step is set up.
-    // Other steps could be created here
     AddAnalysisStep(step1);
+
+    // Create step 2: Detector-based event building
+    TGo4StepFactory *factory2 = new TGo4StepFactory("Det Event Factory");
+    factory2->DefInputEvent("PLEIADESRawEvent","TPLEIADESRawEvent");    // object name, class name
+    factory2->DefEventProcessor("PLEIADESDetProc","TPLEIADESDetProc");  // object name, class name
+    factory2->DefOutputEvent("PLEIADESDetEvent","TPLEIADESDetEvent");   // object name, class name
+
+    TGo4AnalysisStep *step2 = new TGo4AnalysisStep("Det Event Building", factory2, nullptr, nullptr);
+    step2->SetSourceEnabled(kFALSE);
+    step2->SetStoreEnabled(kFALSE);
+    step2->SetProcessEnabled(kTRUE);
+    step2->SetErrorStopEnabled(kTRUE);
+    AddAnalysisStep(step2);
 
     // uncomment following line to define custom passwords for analysis server
     // DefineServerPasswords("PLEIADESadmin", "PLEIADESctrl", "PLEIADESview");

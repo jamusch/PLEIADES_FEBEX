@@ -36,6 +36,9 @@ class TPLEIADESParam : public TGo4Parameter
         void InitBoardMapping();                // initialise to empty mapping
         Bool_t SetConfigBoards();               // copy board IDs to event members
 
+        // functions for connecting fPar pointers
+        Bool_t SetConfigDetEvent();
+
         // parameters for step2 - grouping by Detectors
         std::vector<TString> fDetNameVec;       // list of detector names
         std::map<TString, TString> fDetTypeMap; // a map of names to detector types

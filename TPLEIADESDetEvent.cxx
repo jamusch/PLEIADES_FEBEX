@@ -13,7 +13,9 @@
 //------------------------------------------------------------------------
 
 #include "TPLEIADESDetEvent.h"
+#include "TPLEIADESDetProc.h"
 #include "TGo4Log.h"
+
 
 //------------------------------------------------------------------------
 // TPLEIADESDetChan is a dependent class on TPLEIADESDetector. It represents an output channel on the detector.
@@ -40,16 +42,16 @@ void TPLEIADESDetChan::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
     /** FEBEX special channel properties **/
-    fFPGAEnergy = 0;
-    fFGPAHitTime = 0;
-    fFPGATRAPEZ.clear();
+    fDFPGAEnergy = 0;
+    fDFGPAHitTime = 0;
+    fDFPGATRAPEZ.clear();
 
     /** FEBEX trace properties **/
     #ifdef TPLEIADES_FILL_TRACES
-    fTrapezEnergy = 0;
-    fTrace.clear();
-    fTraceBLR.clear();
-    fTraceTRAPEZ.clear();
+    fDTrapezEnergy = 0;
+    fDTrace.clear();
+    fDTraceBLR.clear();
+    fDTraceTRAPEZ.clear();
     #endif
 }
 
@@ -84,6 +86,9 @@ void TPLEIADESNormPos::Clear(Option_t *opt)
 // TPLEIADESDector is a dependent class on TPLEIADESDetEvent. It represents a physical detector.
 //------------------------------------------------------------------------
 
+// forward declaration of fParDet, which will point to fPar when used in TPLEIADESDetProc
+TPLEIADESParam *TPLEIADESDetector::fParDet = 0;
+
 TPLEIADESDetector::TPLEIADESDetector() :
     TGo4CompositeEvent()
 {
@@ -103,6 +108,12 @@ TPLEIADESDetector::~TPLEIADESDetector()
 
 void TPLEIADESDetector::SetupDetector()    // builds detector channels based on type of detector
 {
+    if(fParDet == 0)
+    {
+        TGo4Log::Warn("TPLEIADESDetEvent::BuildDetectors: fPar not set! Need parameter to access detector setup to build detectors.");
+        return;
+    }
+
     TString modname;
 
     if(fDetType == "SiPad")         // create Si Pad channels
@@ -110,57 +121,57 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         // setup p-sides
         for (int j=0; j<7; ++j)
         {
-            modname.Form("%s_pStrip%02d", fDetName, j);
-            TPLEIADESDetChan *pStrip = TPLEIADESDetChan(modname.Data(), j);
-            pStrip->SetChanMap(fPar->fpSideMap[fDetName] + j);
+            modname.Form("%s_pStrip%d", fDetName.Data(), j);
+            TPLEIADESDetChan *pStrip = new TPLEIADESDetChan(modname.Data(), j);
+            pStrip->SetChanMap(fParDet->fpSideMap[fDetName] + j);
             pStrip->SetChanType("pStrip");
             addEventElement(pStrip);
         }
         // setup n-side
-        modname.Form("%s_nSide", fDetName);
-        TPLEIADESDetChan *nSide = TPLEIADESDetChan(modname.Data(), 7);
-        nSide->SetChanMap(fPar->fnSideMap[fDetName]);
+        modname.Form("%s_nSide", fDetName.Data());
+        TPLEIADESDetChan *nSide = new TPLEIADESDetChan(modname.Data(), 7);
+        nSide->SetChanMap(fParDet->fnSideMap[fDetName]);
         nSide->SetChanType("nSide");
         addEventElement(nSide);
     }
     else if(fDetType == "DSSD")     // setup the DSSD
     {
         // setup raw DSSD channels
-        TString *dssdNames[4] = {"FrntLft", "FrntRgt", "BackTop", "BackBot"};
+        TString dssdNames[4] = {"FrntLft", "FrntRgt", "BackTop", "BackBot"};
         for(int j=0; j<4; ++j)
         {
-            modname.Form("%s_%s", fDetName, dssdNames[j]);
-            TPLEIADESDetChan *dssdChan = TPLEIADESDetChan(modname.Data(), j);
-            dssdChan->SetChanMap(fPar->fDSSDPos[j]);
+            modname.Form("%s_%s", fDetName.Data(), dssdNames[j].Data());
+            TPLEIADESDetChan *dssdChan = new TPLEIADESDetChan(modname.Data(), j);
+            dssdChan->SetChanMap(fParDet->fDSSDMap[j]);
             dssdChan->SetChanType("dssdChan");
-            addEventElement(dssdChan)
+            addEventElement(dssdChan);
         }
         // setup secondary channels for Normalised Position calculation
-        TString *posNames[2] = {"NormPosX", "NormPosY"};
+        TString posNames[2] = {"NormPosX", "NormPosY"};
         for(int j=0; j<2; ++j)
         {
-            modname.Form("%s_%s", fDetName, posNames[j]);
-            TPLEIADESNormPos *posChan = TPLEIADESNormPos(modname.Data(), j+4);
-            addEventElement(posChan)
+            modname.Form("%s_%s", fDetName.Data(), posNames[j].Data());
+            TPLEIADESNormPos *posChan = new TPLEIADESNormPos(modname.Data(), j+4);  //add 4 to ensure correct Event Element ID is given
+            addEventElement(posChan);
         }
 
     }
     else if(fDetType == "Crystal")  // setup the Crystal
     {
         // setup Crystal photodiode outputs
-        TString *crysNames[2] = {"CrysFrnt", "CrysBack"}
+        TString crysNames[2] = {"CrysFrnt", "CrysBack"};
         for(int j=0; j<2; ++j)
         {
-            modname.Form("%s_%s", fDetName, crysNames[j]);
-            TPLEIADESDetChan *crysChan = TPLEIADESDetChan(modname.Data(), j);
-            crysChan->SetChanMap(fPar->fCrystalPos[j]);
+            modname.Form("%s_%s", fDetName.Data(), crysNames[j].Data());
+            TPLEIADESDetChan *crysChan = new TPLEIADESDetChan(modname.Data(), j);
+            crysChan->SetChanMap(fParDet->fCrystalMap[j]);
             crysChan->SetChanType("crysChan");
             addEventElement(crysChan);
         }
     }
     else
     {
-        TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be set up.", dname)
+        TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be set up.", fDetName.Data());
         return;
     }
 }
@@ -175,6 +186,9 @@ void TPLEIADESDetector::Clear(Option_t *opt)
 // TPLEIADESDetEvent is the base class for detector grouping
 //------------------------------------------------------------------------
 
+// forward declaration of fParDEv, which will point to fPar when used in TPLEIADESDetProc
+TPLEIADESParam *TPLEIADESDetEvent::fParDEv = 0;
+
 TPLEIADESDetEvent::TPLEIADESDetEvent() :
     TGo4CompositeEvent()
 {
@@ -187,7 +201,6 @@ TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
     TGo4Log::Info("TPLEIADESDetEvent: Create instance %s with composite ID %d", name, id);
 
     BuildDetectors();
-    SetupDetectors();
 }
 
 TPLEIADESDetEvent::~TPLEIADESDetEvent()
@@ -197,21 +210,22 @@ TPLEIADESDetEvent::~TPLEIADESDetEvent()
 
 void TPLEIADESDetEvent::BuildDetectors()      //construct detectors based on fDetNameVec list
 {
-    if(!fPar)
+    if(fParDEv == 0)
     {
-        TGo4Log::Warn("fPar not set! Need parameter to access detector setup.")
+        TGo4Log::Warn("TPLEIADESDetEvent::BuildDetectors: fPar not set! Need parameter to access detector setup to build detectors.");
         return;
     }
 
     int index = 0;
-    for(const TString& dname : fPar->fDetNameVec)
+    for(const TString& dname : fParDEv->fDetNameVec)
     {
-        TPLEIADESDetector* theDetector = TPLEIADESDetector(dname, index);
+        TPLEIADESDetector *theDetector = new TPLEIADESDetector(dname, index);
         theDetector->SetDetName(dname);
-        theDetector->SetDetType(fPar->fDetTypeMap[dname]);
+        theDetector->SetDetType(fParDEv->fDetTypeMap[dname]);
         theDetector->SetupDetector();
         addEventElement(theDetector);
-        index++
+        index++;
+        TGo4Log::Info("TPLEIADESDetector builds detector %s", dname.Data());
     }
 }
 

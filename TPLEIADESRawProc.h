@@ -15,6 +15,9 @@
 #ifndef TPLEIADESRAWPROC_H
 #define TPLEIADESRAWPROC_H
 
+#include "TGo4EventProcessor.h"
+#include "TPLEIADESRawEvent.h"
+
 // comment out define statements to turn on/off
 
 //#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
@@ -77,11 +80,8 @@
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
 
-#include "TGo4EventProcessor.h"
-#include "TPLEIADESRawEvent.h"
-
 class TPLEIADESParam;
-//class TGo4Fitter;
+class TH1;
 
 class TPLEIADESRawProc : public TGo4EventProcessor
 {
@@ -91,16 +91,15 @@ class TPLEIADESRawProc : public TGo4EventProcessor
         virtual ~TPLEIADESRawProc() ;
         void f_make_histo (Int_t);
 
-        Bool_t BuildEvent(TGo4EventElement* target); // event processing function
+        /** event processing function **/
+        Bool_t BuildEvent(TGo4EventElement* target);
 
     private:
-        TGo4MbsEvent  *fInput;  //!
-
-        /** parameter for runtime settings*/
-        TPLEIADESParam* fPar;
-
-        /** reference to output data*/
+        /** reference to output data **/
         TPLEIADESRawEvent* fOutEvent;  //!
+
+        /** parameter for runtime settings **/
+        TPLEIADESParam* fPar;
 
 
         TH1  *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!

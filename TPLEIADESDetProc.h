@@ -16,13 +16,12 @@
 #define TPLEIADESDETPROC_H
 
 #include "TGo4EventProcessor.h"
-#include "TPLEIADESRawEvent.h"
 #include "TPLEIADESDetEvent.h"
 #include "TPLEIADESParam.h"
 
 class TPLEIADESParam;
 
-class TPLEIADESDetProc
+class TPLEIADESDetProc : public TGo4EventProcessor
 {
     public:
         TPLEIADESDetProc() ;

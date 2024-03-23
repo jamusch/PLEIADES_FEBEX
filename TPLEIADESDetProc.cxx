@@ -26,17 +26,19 @@ TPLEIADESDetProc::TPLEIADESDetProc() : TGo4EventProcessor("Proc")
 }
 
 //------------------------------------------------------------------------
-TPLEIADESDetProc::~TPLEIADESDetProc()
-{
-    TGo4Log::Info("TPLEIADESDetProc: Delete instance ");
-}
-
-//------------------------------------------------------------------------
 // this one is used in standard factory
 TPLEIADESDetProc::TPLEIADESDetProc(const char* name) : TGo4EventProcessor(name)
 {
     TGo4Log::Info("TPLEIADESDetProc: Create instance %s", name);
-    fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
+    // no need to set param macro as this was already done in first step
+    fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam"));
+    if(fPar) { fPar->SetConfigDetEvent(); }
+}
+
+//------------------------------------------------------------------------
+TPLEIADESDetProc::~TPLEIADESDetProc()
+{
+    TGo4Log::Info("TPLEIADESDetProc: Delete instance ");
 }
 
 //------------------------------------------------------------------------
@@ -44,12 +46,24 @@ TPLEIADESDetProc::TPLEIADESDetProc(const char* name) : TGo4EventProcessor(name)
 // Histograms are erased with the next word, so are mostly used for online analysis.
 Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 {
-    fOutEvent = (TPLEIADESDetEvent*) target;
-    if(fOutEvent==0) { GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!") }
-
-    fOutEvent->SetValid(kFALSE);    // initialize next output as not filled, i.e. it is only stored when something is in
+    Bool_t isValid = kFALSE;    // validity of output event
 
     TPLEIADESRawEvent *RawEvent = (TPLEIADESRawEvent*) GetInputEvent();
+    if(!RawEvent || !RawEvent->IsValid())
+    {
+        TGo4Log::Error("TPLEIADESDetProc: no input event !");
+        return isValid;
+    }
+
+    fOutEvent = (TPLEIADESDetEvent*) target;
+    if(fOutEvent == 0)
+    {
+        GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!");
+    }
+
+    fOutEvent->SetValid(isValid);   // initialize next output as not filled, i.e. it is only stored when something is in
+
+    isValid = kTRUE;                // input/output events look good
 
     // loop over detectors to fill data from raw output using mapping
     for(const TString& dname : fPar->fDetNameVec)
@@ -59,39 +73,131 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 
         if((theDetector->GetDetType()) == "SiPad")
         {
-            if( (theDetector->getNElements()) != 8)
+            if((theDetector->getNElements()) != 8)
             {
-                TGo4Log::Warn("Detector %s is a Si Pad but does not have 8 elements. Detector is setup incorrectly.", dname)
-                return;
+                TGo4Log::Warn("Detector %s is a Si Pad but does not have 8 elements. Detector is setup incorrectly.", dname);
+                return kFALSE;
             }
 
-            UInt_t *boardID = (fPar->fpSideMap[dname] >> 4);            // bitwise shift to just select board location
-            TPLEIADESFebBoard *detBoard = RawEvent->GetBoard(boardID);  // get board from input event with board location
+            // load the relevant p-side FEBEX Board from the Raw Event input
+            UInt_t pBoardID = (fPar->fpSideMap[dname] >> 4);          // bitwise shift to just select board location
+            TPLEIADESFebBoard *pBoard = RawEvent->GetBoard(pBoardID);  // get board from input event with board location
 
-            for(int j=0; j<nChan; ++j)
+            // load the data for the p-strips and n-side
+            for(int j=0; j<8; ++j)
             {
-                rawChPos = (theDetChan->fUniqChanMap & 0x00F);          // bitwise and to select last bits where channel location is
-                TPLEIADESFebChannel *theRawChan = detBoard->GetChannel(rawChPos);
+                TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j); // get detector channel
+                rawChPos = (theDetChan->GetChanMap() & 0x00F);          // bitwise AND to select last bits where channel location is
+                TPLEIADESFebChannel *theRawChan = pBoard->GetChannel(rawChPos);
 
-                TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);      // get detector channel
-                theDetChan->fFPGAEnergy     = theRawChan->fFPGAEnergy;
-                theDetChan->fFGPAHitTime;   = theRawChan->fFGPAHitTime;
-                theDetChan->fFPGATRAPEZ;    = theRawChan->fFPGATRAPEZ;
+                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fTrapezEnergy;  = theRawChan->fTrapezEnergy;
-                theDetChan->fTrace;         = theRawChan->fTrace;
-                theDetChan->fTraceBLR;      = theRawChan->fTraceBLR;
-                theDetChan->fTraceTRAPEZ;   = theRawChan->fTraceTRAPEZ;
+                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace          = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
                 #endif
             }
 
-            //now do things with the n-side...
+            // load the data for the n-side
+            UInt_t nBoardID = (fPar->fnSideMap[dname] >> 4);           // bitwise shift to just select board location
+            TPLEIADESFebBoard *nBoard = RawEvent->GetBoard(nBoardID);   // get board from input event with board location
+
+            TPLEIADESDetChan *theDetChan = theDetector->GetChannel(7);
+            rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
+            TPLEIADESFebChannel *theRawChan = nBoard->GetChannel(rawChPos);
+
+            theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
+            theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+            theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+            #ifdef TPLEIADES_FILL_TRACES
+            theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
+            theDetChan->fDTrace          = theRawChan->fRTrace;
+            theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
+            theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
+            #endif
+        }
+        else if((theDetector->GetDetType()) == "DSSD")
+        {
+            if((theDetector->getNElements()) != 6)
+            {
+                TGo4Log::Warn("Detector %s is a DSSD but does not have 6 elements. Detector is setup incorrectly.", dname);
+                return kFALSE;
+            }
+
+            UInt_t normVals[4];
+
+            // load the 4 DSSD channels from the Raw Event input
+            for(int j=0; j<4; ++j)
+            {
+                // det board is called inside for loop in case different channels are plugged into differnet MSI-8s
+                UInt_t dBoardID = (fPar->fDSSDMap[j] >> 4);               // bitwise shift to just select board location
+                TPLEIADESFebBoard *dBoard = RawEvent->GetBoard(dBoardID);   // get board from input event with board location
+
+                TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
+                TPLEIADESFebChannel *theRawChan = dBoard->GetChannel(rawChPos);
+
+                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+                #ifdef TPLEIADES_FILL_TRACES
+                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace          = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
+                #endif
+
+                normVals[j] = theDetChan->fDFPGAEnergy;  // energy value is stored for normalised position measurement
+            }
+
+            // calculate normalised position values
+            TPLEIADESNormPos *normPos = theDetector->GetNormPos(5);
+            normPos->fNormPosX = (normVals[0] - normVals[1])/(normVals[0] + normVals[1]);
+            normPos->fNormPosY = (normVals[2] - normVals[3])/(normVals[2] + normVals[3]);
+        }
+        else if((theDetector->GetDetType()) == "Crystal")
+        {
+            if((theDetector->getNElements()) != 2)
+            {
+                TGo4Log::Warn("Detector %s is a Crystal but does not have 2 elements. Detector is setup incorrectly.", dname);
+                return kFALSE;
+            }
+
+            // load the 2 crystal channels from the Raw Event input
+            for(int j=0; j<2; ++j)
+            {
+                // det board is called inside for loop in case different channels are plugged into differnet MSI-8s
+                UInt_t cBoardID = (fPar->fCrystalMap[j] >> 4);               // bitwise shift to just select board location
+                TPLEIADESFebBoard *cBoard = RawEvent->GetBoard(cBoardID);   // get board from input event with board location
+
+                TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
+                TPLEIADESFebChannel *theRawChan = cBoard->GetChannel(rawChPos);
+
+                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+                #ifdef TPLEIADES_FILL_TRACES
+                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace          = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
+                #endif
+            }
+        }
+        else
+        {
+            TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be filled.", dname);
+            return kFALSE;
         }
     }
 
+    fOutEvent->SetValid(isValid);     // now event is filled, store event
 
-
-    fOutEvent->SetValid(kTRUE);     // now event is filled, store event
+    return isValid;
 }
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

@@ -13,28 +13,21 @@
 //------------------------------------------------------------------------
 
 #include "TPLEIADESRawProc.h"
+
 #include "stdint.h"
-
+#include "snprintf.h"
 #include "Riostream.h"
-
-using namespace std;
 
 #include "TH1.h"
 #include "TH2.h"
-#include "TCutG.h"
-#include "snprintf.h"
 
-#include "TGo4MbsEvent.h"
-#include "TGo4WinCond.h"
-#include "TGo4PolyCond.h"
-#include "TGo4CondArray.h"
-#include "TGo4Picture.h"
-
-#include "TGo4UserException.h"
 #include "TGo4Log.h"
+#include "TGo4MbsEvent.h"
+#include "TGo4UserException.h"
 
-#include "TPLEIADESRawEvent.h"
 #include "TPLEIADESParam.h"
+
+using namespace std;
 
 
 #ifdef USE_MBS_PARAM
@@ -68,6 +61,15 @@ TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc")
 }
 
 //------------------------------------------------------------------------
+// this one is used in standard factory
+TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
+{
+    TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
+    fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
+    if(fPar) { fPar->SetConfigBoards(); }
+}
+
+//------------------------------------------------------------------------
 TPLEIADESRawProc::~TPLEIADESRawProc()
 {
     TGo4Log::Info("TPLEIADESRawProc: Delete instance ");
@@ -76,28 +78,32 @@ TPLEIADESRawProc::~TPLEIADESRawProc()
 }
 
 //------------------------------------------------------------------------
-// this one is used in standard factory
-TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
-{
-    TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
-    fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
-    if(fPar)
-    {
-        fPar->SetConfigBoards();
-    }
-}
-
-//------------------------------------------------------------------------
 // Build event is the unpacker function, it reads the MBS event and does stuff with it.
 // Histograms are erased with the next word, so are mostly used for online analysis.
 Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 {
+    Bool_t isValid = kFALSE;    // validity of output event
+
+    TGo4MbsEvent *source = (TGo4MbsEvent*) GetInputEvent();	// event is called
+    if(source == 0)
+    {
+        TGo4Log::Error("TPLEIADESRawProc: no input source !");
+        return isValid;
+    }
+
+    //  JAM 12-12-2023 take general event number from mbs event header. Note that subsystem sequence may differ:
+    fOutEvent->fSequenceNumber = source->GetCount();
     // called by framework for each mbs input event.
     fOutEvent= dynamic_cast<TPLEIADESRawEvent*>  (target);
-    if(fOutEvent==0) { GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!") }
+    if(fOutEvent==0)
+    {
+        GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!");
+        return isValid;
+    }
 
     fOutEvent->SetValid(kFALSE); // initialize next output as not filled, i.e.it is only stored when something is in
 
+    isValid = kTRUE;            // input/ouput events look good
 
     //------------------------------------------------------------------------
     // object definitions. these objects will be used in reading the data stream.
@@ -199,18 +205,8 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     //------------------------------------------------------------------------
     // MBS data stream readout. Here the function starts calling basic Go4 functions to read data words, etc.
 
-    fInput = (TGo4MbsEvent* ) GetInputEvent();	// event is called
-    if(fInput == 0)
-    {
-        cout << "AnlProc: no input event !"<< endl;
-        return kFALSE;
-    }
-
-    //  JAM 12-12-2023 take general event number from mbs event header. Note that subsystem sequence may differ:
-    fOutEvent->fSequenceNumber = fInput->GetCount();
-
     // MBS trigger counters are incremeneted, but also not used?
-    l_trig_type_triva = fInput->GetTrigger();
+    l_trig_type_triva = source->GetTrigger();
     if (l_trig_type_triva == 1)
     {
         l_evt_ct_phys++;
@@ -221,8 +217,8 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     // See TFeb3Full example or CsISiPHOS_FEBEX setup from N. Kurz for sub event machinery.
     TGo4MbsSubEvent* psubevt;
 
-    fInput->ResetIterator();
-    psubevt = fInput->NextSubEvent(); // only one subevent
+    source->ResetIterator();
+    psubevt = source->NextSubEvent(); // only one subevent
 
     // next we extract data word for subevent and prepare properties
     // GetDataField is pointer to subevent data. pl_tmp++ increments pointer to next word in stream.
@@ -816,41 +812,41 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 {
                     TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
 
-                    theChannel->fFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
-                    theChannel->fFGPAHitTime = l_fpga_hitti[l_i][l_j][l_k];
+                    theChannel->fRFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
+                    theChannel->fRFGPAHitTime = l_fpga_hitti[l_i][l_j][l_k];
 
                     #ifdef TPLEIADES_FILL_TRACES
                     for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fTrace.push_back(l_value);
+                        theChannel->fRTrace.push_back(l_value);
                     }
 
                     for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fTraceBLR.push_back(l_value);
+                        theChannel->fRTraceBLR.push_back(l_value);
                     }
 
                     for(int bin=1; bin<h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trapez_f[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fTraceTRAPEZ.push_back(l_value);
+                        theChannel->fRTraceTRAPEZ.push_back(l_value);
                     }
 
-                    theChannel->fTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
+                    theChannel->fRTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
 
                     for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fFPGATRAPEZ.push_back(l_value);
+                        theChannel->fRFPGATRAPEZ.push_back(l_value);
                     }
                     #endif // TPLEIADES_FILL_TRACES
                 }
             }
         }
     }
-    fOutEvent->SetValid(kTRUE);     // now event is filled, store event
+    fOutEvent->SetValid(isValid);     // now event is filled, store event
 
     bad_event:
 
@@ -859,13 +855,11 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     //------------------------------------------------------------------------
     if(fPar->fSlowMotion)
     {
-        Int_t evnum = fInput->GetCount();
+        Int_t evnum = source->GetCount();
         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
     }
 
-
-
-    return kTRUE;
+    return isValid;
 }
 
 //------------------------------------------------------------------------
