@@ -75,7 +75,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         {
             if((theDetector->getNElements()) != 8)
             {
-                TGo4Log::Warn("Detector %s is a Si Pad but does not have 8 elements. Detector is setup incorrectly.", dname);
+                TGo4Log::Warn("Detector %s is a Si Pad but does not have 8 elements. Detector is setup incorrectly.", dname.Data());
                 return kFALSE;
             }
 
@@ -123,7 +123,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         {
             if((theDetector->getNElements()) != 6)
             {
-                TGo4Log::Warn("Detector %s is a DSSD but does not have 6 elements. Detector is setup incorrectly.", dname);
+                TGo4Log::Warn("Detector %s is a DSSD but does not have 6 elements. Detector is setup incorrectly.", dname.Data());
                 return kFALSE;
             }
 
@@ -155,14 +155,16 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 
             // calculate normalised position values
             TPLEIADESNormPos *normPos = theDetector->GetNormPos(5);
-            normPos->fNormPosX = (normVals[0] - normVals[1])/(normVals[0] + normVals[1]);
-            normPos->fNormPosY = (normVals[2] - normVals[3])/(normVals[2] + normVals[3]);
+            Double_t den=(normVals[0] + normVals[1]); // JAM24: check denominator
+            if(den) normPos->fNormPosX = (normVals[0] - normVals[1])/den;
+            den=(normVals[2] + normVals[3]);
+            if(den) normPos->fNormPosY = (normVals[2] - normVals[3])/den;
         }
         else if((theDetector->GetDetType()) == "Crystal")
         {
             if((theDetector->getNElements()) != 2)
             {
-                TGo4Log::Warn("Detector %s is a Crystal but does not have 2 elements. Detector is setup incorrectly.", dname);
+                TGo4Log::Warn("Detector %s is a Crystal but does not have 2 elements. Detector is setup incorrectly.", dname.Data());
                 return kFALSE;
             }
 
@@ -190,7 +192,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         }
         else
         {
-            TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be filled.", dname);
+            TGo4Log::Warn("Detector %s does not have a recognised detector type, and thus can't be filled.", dname.Data());
             return kFALSE;
         }
     }

@@ -91,15 +91,17 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
         return isValid;
     }
 
-    //  JAM 12-12-2023 take general event number from mbs event header. Note that subsystem sequence may differ:
-    fOutEvent->fSequenceNumber = source->GetCount();
-    // called by framework for each mbs input event.
+
     fOutEvent= dynamic_cast<TPLEIADESRawEvent*>  (target);
     if(fOutEvent==0)
     {
         GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!");
         return isValid;
     }
+
+    //  JAM 12-12-2023 take general event number from mbs event header. Note that subsystem sequence may differ:
+    fOutEvent->fSequenceNumber = source->GetCount();
+    // called by framework for each mbs input event.
 
     fOutEvent->SetValid(kFALSE); // initialize next output as not filled, i.e.it is only stored when something is in
 

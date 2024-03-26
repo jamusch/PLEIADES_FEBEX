@@ -35,13 +35,13 @@ void set_PLEIADESParam()
     // code for channel map is a 12 bit word: bit 9,8 are for SFP, bit 7-4 are for Board slot, bit 3-0 are for channel position.
     // for fpSideMap, beacuse p-sides are plugged in via 16-ch ribbon cables (and thus must come in order), only first pos is listed.
     //----- Slot 1 -----
-    TString s1name = "slot1-MSPad_17A";
+    TString s1name = "slot1_MSPad_17A";
     param0->fDetNameVec.push_back(s1name);  // add detector to named list
     param0->fDetTypeMap[s1name] = "SiPad";  // define detector type
     param0->fpSideMap[s1name] = 0x100;      // slot 1 p-side goes to card 0, ch 0-6
     param0->fnSideMap[s1name] = 0x140;      // slot 1 n-side goes to card 4, ch 0
     //----- Slot 2 -----
-    TString s2name = "slot2-DSSD_C161054";
+    TString s2name = "slot2_DSSD_C161054";
     param0->fDetNameVec.push_back(s2name);  // add detector to named list
     param0->fDetTypeMap[s2name] = "DSSD";   // define detector type
     param0->fDSSDMap[0] = 0x148;            // pin1 goes to card 4, ch 8
@@ -49,49 +49,49 @@ void set_PLEIADESParam()
     param0->fDSSDMap[2] = 0x14A;            // pin6 goes to card 4, ch 10
     param0->fDSSDMap[3] = 0x14B;            // pin7 goes to card 4, ch 11
     //----- Slot 3 -----
-    TString s3name = "slot3-MSPad_17B";
+    TString s3name = "slot3_MSPad_17B";
     param0->fDetNameVec.push_back(s3name);  // add detector to named list
     param0->fDetTypeMap[s3name] = "SiPad";  // define detector type
     param0->fpSideMap[s3name] = 0x108;      // slot 3 p-side goes to card 0, ch 8-15
     param0->fnSideMap[s3name] = 0x141;      // slot 3 n-side goes to card 4, ch 1
     //----- Slot 4 -----
-    TString s4name = "slot4-MSPad_17C";
+    TString s4name = "slot4_MSPad_17C";
     param0->fDetNameVec.push_back(s4name);  // add detector to named list
     param0->fDetTypeMap[s4name] = "SiPad";  // define detector type
     param0->fpSideMap[s4name] = 0x110;      // slot 4 p-side goes to card 1, ch 0-6
     param0->fnSideMap[s4name] = 0x142;      // slot 4 n-side goes to card 4, ch 2
     //----- Slot 5 -----
-    TString s5name = "slot5-MSPad_16A";
+    TString s5name = "slot5_MSPad_16A";
     param0->fDetNameVec.push_back(s5name);  // add detector to named list
     param0->fDetTypeMap[s5name] = "SiPad";  // define detector type
     param0->fpSideMap[s5name] = 0x121;      // slot 5 p-side goes to card 2, ch 0-6 (WEIRD don't ask me)
     param0->fnSideMap[s5name] = 0x143;      // slot 5 n-side goes to card 4, ch 3
     //----- Slot 6 -----
-    TString s6name = "slot6-MSPad_16B";
+    TString s6name = "slot6_MSPad_16B";
     param0->fDetNameVec.push_back(s6name);  // add detector to named list
     param0->fDetTypeMap[s6name] = "SiPad";  // define detector type
     param0->fpSideMap[s6name] = 0x118;      // slot 6 p-side goes to card 1, ch 8-15 (ahhhh)
     param0->fnSideMap[s6name] = 0x144;      // slot 6 n-side goes to card 4, ch 4
     //----- Slot 7 -----
-    TString s7name = "slot7-MSPad_16C";
+    TString s7name = "slot7_MSPad_16C";
     param0->fDetNameVec.push_back(s7name);  // add detector to named list
     param0->fDetTypeMap[s7name] = "SiPad";  // define detector type
     param0->fpSideMap[s7name] = 0x130;      // slot 7 p-side goes to card 3, ch 0-6 (who tf wired this)
     param0->fnSideMap[s7name] = 0x145;      // slot 7 n-side goes to card 4, ch 5
     //----- Slot 8 -----
-    /* EMPTY SLOT!!!    TString s8name = "slot8-EMPTY";
+    /* EMPTY SLOT!!!    TString s8name = "slot8_EMPTY";
     param0->fDetNameVec.push_back(s8name);  // add detector to named list
     param0->fDetTypeMap[s8name] = "SiPad";  // define detector type
     param0->fpSideMap[s8name] = 0x138;      // slot 8 p-side goes to card 3, ch 8-15
     param0->fnSideMap[s8name] = 0x146;      // slot 8 n-side goes to card 4, ch 6    */
     //----- Slot 9 -----
-    /* EMPTY SLOT!!!    TString s9name = "slot9-EMPTY";
+    /* EMPTY SLOT!!!    TString s9name = "slot9_EMPTY";
     param0->fDetNameVec.push_back(s9name);  // add detector to named list
     param0->fDetTypeMap[s9name] = "SiPad";  // define detector type
     param0->fpSideMap[s9name] = 0x128;      // slot 8 p-side goes to card 2, ch 8-15
     param0->fnSideMap[s9name] = 0x147;      // slot 9 n-side goes to card 4, ch 7    */
     //----- Slot BP -----
-    TString sBPname = "slotBP-Crys_GAGG";
+    TString sBPname = "slotBP_Crys_GAGG";
     param0->fDetNameVec.push_back(sBPname); // add detector to named list
     param0->fDetTypeMap[sBPname] = "Crystal"; // define detector type
     param0->fCrystalMap[0] = 0x14E;         // BP pin1 goes to card 4, ch 14
