@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------
-//************************ TPLEIADESDetProc.h ****************************
+//*********************** TPLEIADESPhysProc.h ****************************
 //------------------------------------------------------------------------
 //       The GSI Online Offline Object Oriented (Go4) Project
 //         Experiment Data Processing at EE department, GSI
@@ -12,21 +12,21 @@
 // in Go4License.txt file which is part of the distribution.
 //------------------------------------------------------------------------
 
-#ifndef TPLEIADESDETPROC_H
-#define TPLEIADESDETPROC_H
+#ifndef TPLEIADESPHYSPROC_H
+#define TPLEIADESPHYSPROC_H
 
 #include "TGo4EventProcessor.h"
-#include "TPLEIADESDetEvent.h"
+#include "TPLEIADESPhysEvent.h"
 #include "TPLEIADESParam.h"
 
 class TPLEIADESParam;
 
-class TPLEIADESDetProc : public TGo4EventProcessor
+class TPLEIADESPhysProc : public TGo4EventProcessor
 {
     public:
-        TPLEIADESDetProc() ;
-        TPLEIADESDetProc(const char* name);
-        virtual ~TPLEIADESDetProc() ;
+        TPLEIADESPhysProc(const char* name);
+        TPLEIADESPhysProc() ;
+        virtual ~TPLEIADESPhysProc() ;
 
         Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 
@@ -35,11 +35,11 @@ class TPLEIADESDetProc : public TGo4EventProcessor
         TPLEIADESParam* fPar;
 
         /** reference to output data*/
-        TPLEIADESDetEvent* fOutEvent;  //!
+        TPLEIADESPhysEvent* fOutEvent;  //!
 
-    ClassDef(TPLEIADESDetProc, 1)
+    ClassDef(TPLEIADESPhysProc, 1)
 };
 
-#endif // TPLEIADESDETPROC_H
+#endif // TPLEIADESPHYSPROC_H
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

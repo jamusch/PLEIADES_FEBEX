@@ -15,6 +15,7 @@
 #include "TPLEIADESParam.h"
 #include "TPLEIADESRawEvent.h"
 #include "TPLEIADESDetEvent.h"
+#include "TPLEIADESPhysEvent.h"
 
 #include "Riostream.h"
 #include "TGo4Log.h"
@@ -74,6 +75,13 @@ Bool_t TPLEIADESParam::SetConfigDetEvent()
 {
     TPLEIADESDetector::fParDet = this;
     TPLEIADESDetEvent::fParDEv = this;
+    return kTRUE;
+}
+
+// this function connects the fParDet and fParPEv of TPLEIADESPhysEvent to the current fPar being used
+Bool_t TPLEIADESParam::SetConfigPhysEvent()
+{
+    TPLEIADESPhysEvent::fParPEv = this;
     return kTRUE;
 }
 

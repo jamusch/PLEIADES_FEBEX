@@ -16,7 +16,7 @@
 #define TPLEIADESDETEVENT_H
 
 #include "TGo4CompositeEvent.h"
-#include "TPLEIADESRawEvent.h"
+#include "TPLEIADESRawEvent.h"  // used for trace ifdef
 
 class TPLEIADESParam;
 
@@ -84,7 +84,7 @@ class TPLEIADESNormPos : public TGo4EventElement
 };
 
 //------------------------------------------------------------------------
-// TPLEIADESDector is a dependent class on TPLEIADESDetEvent. It represents a physical detector.
+// TPLEIADESDetector is a dependent class on TPLEIADESDetEvent. It represents a detector with unprocessed values.
 //------------------------------------------------------------------------
 
 class TPLEIADESDetector : public TGo4CompositeEvent

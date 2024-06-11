@@ -39,7 +39,7 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
 
     TGo4Log::Info("Create TPLEIADESAnalysis name: %s", argv[0]);
 
-    // Create step 1: RawEvent unpacking
+    // Create step 1: Raw Event unpacking
     TGo4StepFactory* factory1 = new TGo4StepFactory("Raw Unpacking Factory");
     factory1->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");   // object name, class name
     factory1->DefOutputEvent("PLEIADESRawEvent","TPLEIADESRawEvent");    // object name, class name
@@ -69,6 +69,19 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     step2->SetProcessEnabled(kTRUE);
     step2->SetErrorStopEnabled(kTRUE);
     AddAnalysisStep(step2);
+
+    // Create step 3: Physics processing to simplify data
+    TGo4StepFactory *factory3 = new TGo4StepFactory("Physics Processing Factory");
+    factory3->DefInputEvent("PLEIADESDetEvent","TPLEIADESDetEvent");    // object name, class name
+    factory3->DefEventProcessor("PLEIADESPhysProc","TPLEIADESPhysProc");  // object name, class name
+    factory3->DefOutputEvent("PLEIADESPhysEvent","TPLEIADESPhysEvent");   // object name, class name
+
+    TGo4AnalysisStep *step3 = new TGo4AnalysisStep("Physics Processing", factory3, nullptr, nullptr);
+    step2->SetSourceEnabled(kFALSE);
+    step2->SetStoreEnabled(kFALSE);
+    step2->SetProcessEnabled(kTRUE);
+    step2->SetErrorStopEnabled(kTRUE);
+    AddAnalysisStep(step3);
 
     // uncomment following line to define custom passwords for analysis server
     // DefineServerPasswords("PLEIADESadmin", "PLEIADESctrl", "PLEIADESview");

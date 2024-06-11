@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------
-//************************ TPLEIADESDetProc.h ***************************
+//************************ TPLEIADESDetProc.cxx **************************
 //------------------------------------------------------------------------
 //       The GSI Online Offline Object Oriented (Go4) Project
 //         Experiment Data Processing at EE department, GSI
@@ -17,6 +17,7 @@
 #include "TGo4Log.h"
 
 #include "TPLEIADESDetProc.h"
+#include "TPLEIADESRawEvent.h"
 #include "TPLEIADESParam.h"
 
 //------------------------------------------------------------------------
@@ -155,10 +156,12 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 
             // calculate normalised position values
             TPLEIADESNormPos *normPos = theDetector->GetNormPos(5);
-            Double_t den=(normVals[0] + normVals[1]); // JAM24: check denominator
+            Double_t den = (normVals[0] + normVals[1]); // JAM24: check denominator
             if(den) normPos->fNormPosX = (normVals[0] - normVals[1])/den;
-            den=(normVals[2] + normVals[3]);
+            else TGo4Log::Info("TPLEIADESNormPos: DSSD X has 0 energy for this event");
+            den = (normVals[2] + normVals[3]);
             if(den) normPos->fNormPosY = (normVals[2] - normVals[3])/den;
+            else TGo4Log::Info("TPLEIADESNormPos: DSSD Y has 0 energy for this event");
         }
         else if((theDetector->GetDetType()) == "Crystal")
         {

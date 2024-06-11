@@ -79,7 +79,9 @@ TPLEIADESNormPos::~TPLEIADESNormPos()
 
 void TPLEIADESNormPos::Clear(Option_t *opt)
 {
-
+    // all members should be cleared, i.e. assigned to a "not filled" value
+    fNormPosX = 0;
+    fNormPosY = 0;
 }
 
 //------------------------------------------------------------------------

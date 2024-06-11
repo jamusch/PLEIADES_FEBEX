@@ -38,6 +38,7 @@ class TPLEIADESParam : public TGo4Parameter
 
         // functions for connecting fPar pointers
         Bool_t SetConfigDetEvent();
+        Bool_t SetConfigPhysEvent();
 
         // parameters for step2 - grouping by Detectors
         std::vector<TString> fDetNameVec;       // list of detector names
