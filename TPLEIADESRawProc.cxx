@@ -815,7 +815,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
 
                     theChannel->fRFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
-                    theChannel->fRFGPAHitTime = l_fpga_hitti[l_i][l_j][l_k];
+                    theChannel->fRFPGAHitTime = l_fpga_hitti[l_i][l_j][l_k];
 
                     #ifdef TPLEIADES_FILL_TRACES
                     for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)

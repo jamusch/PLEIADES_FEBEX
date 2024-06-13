@@ -44,6 +44,7 @@ void set_PLEIADESParam()
     TString s2name = "slot2_DSSD_C161054";
     param0->fDetNameVec.push_back(s2name);  // add detector to named list
     param0->fDetTypeMap[s2name] = "DSSD";   // define detector type
+    // for DSSD, make sure p-sides (ie L/R) go to pos 0/1 in fDSSDMap
     param0->fDSSDMap[0] = 0x148;            // pin1 goes to card 4, ch 8
     param0->fDSSDMap[1] = 0x149;            // pin2 goes to card 4, ch 9
     param0->fDSSDMap[2] = 0x14A;            // pin6 goes to card 4, ch 10
@@ -94,6 +95,7 @@ void set_PLEIADESParam()
     TString sBPname = "slotBP_Crys_GAGG";
     param0->fDetNameVec.push_back(sBPname); // add detector to named list
     param0->fDetTypeMap[sBPname] = "Crystal"; // define detector type
+    // for Crystal, front should go to 0, back to 1
     param0->fCrystalMap[0] = 0x14E;         // BP pin1 goes to card 4, ch 14
     param0->fCrystalMap[1] = 0x14F;         // BP pin2 goes to card 4, ch 15
 

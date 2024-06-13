@@ -85,14 +85,14 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             TPLEIADESFebBoard *pBoard = RawEvent->GetBoard(pBoardID);  // get board from input event with board location
 
             // load the data for the p-strips and n-side
-            for(int j=0; j<8; ++j)
+            for(int j=0; j<7; ++j)
             {
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j); // get detector channel
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);          // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = pBoard->GetChannel(rawChPos);
 
                 theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
                 theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
                 #ifdef TPLEIADES_FILL_TRACES
                 theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
@@ -111,7 +111,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             TPLEIADESFebChannel *theRawChan = nBoard->GetChannel(rawChPos);
 
             theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-            theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+            theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
             theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
             #ifdef TPLEIADES_FILL_TRACES
             theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
@@ -142,7 +142,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebChannel *theRawChan = dBoard->GetChannel(rawChPos);
 
                 theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
                 theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
                 #ifdef TPLEIADES_FILL_TRACES
                 theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
@@ -183,7 +183,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebChannel *theRawChan = cBoard->GetChannel(rawChPos);
 
                 theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFGPAHitTime    = theRawChan->fRFGPAHitTime;
+                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
                 theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
                 #ifdef TPLEIADES_FILL_TRACES
                 theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;

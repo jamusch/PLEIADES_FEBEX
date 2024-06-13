@@ -42,10 +42,10 @@ TPLEIADESDetPhysics::~TPLEIADESDetPhysics()
 void TPLEIADESDetPhysics::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
-    fpEnergy = 0;
-    fnEnergy = 0;
-    fNormPosX = 0;
-    fNormPosY = 0;
+    fpEnergy  = -99;
+    fnEnergy  = -99;
+    fNormPosX = -99;
+    fNormPosY = -99;
 }
 
 

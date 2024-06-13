@@ -43,15 +43,15 @@ class TPLEIADESFebChannel : public TGo4EventElement
 
         /** FEBEX special channel properties **/
         UInt_t fRFPGAEnergy;
-        Int_t fRFGPAHitTime;
-        std::vector<Int_t> fRFPGATRAPEZ;
+        UInt_t fRFPGAHitTime;
+        std::vector<Double_t> fRFPGATRAPEZ;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
         UInt_t fRTrapezEnergy;
-        std::vector<UInt_t>  fRTrace;
-        std::vector<Int_t>   fRTraceBLR;
-        std::vector<Int_t>   fRTraceTRAPEZ;
+        std::vector<Double_t>  fRTrace;
+        std::vector<Double_t>   fRTraceBLR;
+        std::vector<Double_t>   fRTraceTRAPEZ;
         #endif
 
     ClassDefOverride(TPLEIADESFebChannel,1)

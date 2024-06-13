@@ -44,15 +44,15 @@ class TPLEIADESDetChan : public TGo4EventElement
 
         /** FEBEX special channel properties **/
         UInt_t fDFPGAEnergy;
-        Int_t fDFGPAHitTime;
-        std::vector<Int_t> fDFPGATRAPEZ;
+        UInt_t fDFPGAHitTime;
+        std::vector<Double_t> fDFPGATRAPEZ;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
         UInt_t fDTrapezEnergy;
-        std::vector<UInt_t>  fDTrace;
-        std::vector<Int_t>   fDTraceBLR;
-        std::vector<Int_t>   fDTraceTRAPEZ;
+        std::vector<Double_t>  fDTrace;
+        std::vector<Double_t>   fDTraceBLR;
+        std::vector<Double_t>   fDTraceTRAPEZ;
         #endif
 
     private:

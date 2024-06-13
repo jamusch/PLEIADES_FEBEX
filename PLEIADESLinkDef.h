@@ -18,22 +18,24 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class TPLEIADESDetChan+;
-#pragma link C++ class TPLEIADESNormPos+;
-#pragma link C++ class TPLEIADESDetector+;
-
-#pragma link C++ class TPLEIADESDetEvent+;
-#pragma link C++ class TPLEIADESDetProc+;
-
-#pragma link C++ class TPLEIADESFebChannel+;
-#pragma link C++ class TPLEIADESFebBoard+;
-
-#pragma link C++ class TPLEIADESRawEvent+;
-#pragma link C++ class TPLEIADESRawProc+;
+#pragma link C++ class TPLEIADESAnalysis+;
 
 #pragma link C++ class TPLEIADESParam+;
 
-#pragma link C++ class TPLEIADESAnalysis+;
+#pragma link C++ class TPLEIADESRawEvent+;
+#pragma link C++ class TPLEIADESRawProc+;
+#pragma link C++ class TPLEIADESFebBoard+;
+#pragma link C++ class TPLEIADESFebChannel+;
+
+#pragma link C++ class TPLEIADESDetEvent+;
+#pragma link C++ class TPLEIADESDetProc+;
+#pragma link C++ class TPLEIADESDetector+;
+#pragma link C++ class TPLEIADESDetChan+;
+#pragma link C++ class TPLEIADESNormPos+;
+
+#pragma link C++ class TPLEIADESPhysEvent+;
+#pragma link C++ class TPLEIADESPhysProc+;
+#pragma link C++ class TPLEIADESDetPhysics+;
 
 #endif
 

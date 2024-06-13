@@ -16,6 +16,7 @@
 #define TPLEIADESPHYSPROC_H
 
 #include "TGo4EventProcessor.h"
+#include "TPLEIADESDetEvent.h"
 #include "TPLEIADESPhysEvent.h"
 #include "TPLEIADESParam.h"
 
@@ -29,6 +30,11 @@ class TPLEIADESPhysProc : public TGo4EventProcessor
         virtual ~TPLEIADESPhysProc() ;
 
         Bool_t BuildEvent(TGo4EventElement* target); // event processing function
+        Int_t pStripSelect(     TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // constructs p-side energy from strips
+        Int_t stdSinSideEnergy( TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills n-side energy from scalars
+        Int_t stdDSSDEnergy(    TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills DSSD energy from scalars
+        Int_t stdDSSDPosition(  TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // standard computation of normalised position
+        Int_t stdCrystalEnergy( TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills Crystal energies from scalars
 
     private:
         /** parameter for runtime settings*/

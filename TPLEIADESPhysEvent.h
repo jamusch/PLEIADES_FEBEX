@@ -42,10 +42,10 @@ class TPLEIADESDetPhysics: public TGo4EventElement
         TString GetDetType() { return fDetType; }
 
         /** physics properties of detector **/
-        UInt_t fpEnergy;
-        UInt_t fnEnergy;
-        Double_t fNormPosX;
-        Double_t fNormPosY;
+        Double_t fpEnergy  = -99;
+        Double_t fnEnergy  = -99;
+        Double_t fNormPosX = -99;
+        Double_t fNormPosY = -99;
 
     private:
         TString fDetName;       // detector name setup in set_PLEIADESParam.C
