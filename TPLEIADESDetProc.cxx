@@ -19,6 +19,7 @@
 #include "TPLEIADESDetProc.h"
 #include "TPLEIADESRawEvent.h"
 #include "TPLEIADESParam.h"
+#include "TPLEIADESDisplay.h"
 
 //------------------------------------------------------------------------
 TPLEIADESDetProc::TPLEIADESDetProc() : TGo4EventProcessor("Proc")
@@ -42,6 +43,28 @@ TPLEIADESDetProc::~TPLEIADESDetProc()
     TGo4Log::Info("TPLEIADESDetProc: Delete instance ");
 }
 
+void TPLEIADESDetProc::InitDisplays(TPLEIADESDetEvent* out)
+{
+    // loop through detectors in DetEvent
+    for(int id=0; id<(out->getNElements()); ++id)
+    {
+        const char* name = out->getEventElement(id)->GetName();
+        TPLEIADESDetector *theDetector = out->GetDetector(name);
+        TPLEIADESDetDisplay *detDisplay = new TPLEIADESDetDisplay(theDetector);
+        detDisplay->InitDisplay();
+
+        // loop through channels in each detector object
+        for(int ch=0; ch<(theDetector->getNElements()); ++ch)
+        {
+            const char* name2 = theDetector->getEventElement(ch)->GetName();
+            TPLEIADESDetChan *theChannnel = theDetector->GetChannel(name2);
+            TPLEIADESChanDisplay *chanDisplay = new TPLEIADESChanDisplay(theChannnel);
+            chanDisplay->InitDisplay();
+            detDisplay->AddChanDisplay(chanDisplay);    // link channel to detector display
+        }
+    }
+}
+
 //------------------------------------------------------------------------
 // Build event is the unpacker function, it reads the MBS event and does stuff with it.
 // Histograms are erased with the next word, so are mostly used for online analysis.
@@ -56,15 +79,20 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         return isValid;
     }
 
-    fOutEvent = (TPLEIADESDetEvent*) target;
     if(fOutEvent == 0)
     {
-        GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!");
+        fOutEvent = (TPLEIADESDetEvent*) target;
+        InitDisplays(fOutEvent);    // initialise display histograms
+    }
+    else
+    {
+        fOutEvent = (TPLEIADESDetEvent*) target;
     }
 
-    fOutEvent->SetValid(isValid);   // initialize next output as not filled, i.e. it is only stored when something is in
+    // initialize next output as not filled, i.e. it is only stored when something is in
+    fOutEvent->SetValid(isValid);
 
-    isValid = kTRUE;                // input/output events look good
+    isValid = kTRUE;    // input/output events look good
 
     // loop over detectors to fill data from raw output using mapping
     for(const TString& dname : fPar->fDetNameVec)

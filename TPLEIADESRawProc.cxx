@@ -867,7 +867,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 //------------------------------------------------------------------------
 // f_make_histo assembles the histograms used in BuilEvent()
 
-void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
+void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
 {
     Text_t chis[256];
     Text_t chead[256];
@@ -907,14 +907,14 @@ void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Traces/TRACE  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Traces/TRACE  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Trace");
                     h_trace[l_i][l_j][l_k] = MakeTH1('I', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Traces BLR/TRACE, base line restored (ordinate in mV) SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Traces BLR/TRACE, base line restored (ordinate in mV) SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Trace, base line restored");
                     h_trace_blr[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
@@ -922,14 +922,14 @@ void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
                 #ifdef TRAPEZ
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TRAPEZ/TRAPEZ Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/TRAPEZ/TRAPEZ Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"TRAPEZ Filter");
                     h_trapez_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TRAPEZ Energy/TRAPEZ Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/TRAPEZ Energy/TRAPEZ Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Energy");
                     //h_trapez_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*TRAPEZ_N_AVG,0x1000*TRAPEZ_N_AVG);
                     //h_trapez_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-2000000,2000000);
@@ -940,21 +940,21 @@ void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
                 #ifdef MWD
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"MWD Filter/MWD Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/MWD Filter/MWD Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"MWD Filter");
                     h_mwd_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"MWD Average/MWD Average  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/MWD Average/MWD Average  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"MWD Average");
                     h_mwd_a[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"MWD Energy/MWD Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/MWD Energy/MWD Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Energy");
                     h_mwd_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-0x1000,0x1000);
                 }
@@ -962,14 +962,14 @@ void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"FPGA/FPGA Trapez   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA Trapez   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"FPGA Trapez");
                     h_trapez_fpga[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"FPGA/FPGA Energy(hitlist)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA Energy(hitlist)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"FPGA Energy");
                     //h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*TRAPEZ_N_AVG,0x1000*TRAPEZ_N_AVG);
                     h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x10000,-2000000,2000000);
@@ -977,68 +977,68 @@ void TPLEIADESRawProc:: f_make_histo (Int_t l_mode)
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"E_CORR/Energy(hitlist) vs TRAPEZ Energy  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/E_CORR/Energy(hitlist) vs TRAPEZ Energy  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"(FPGA Energy)/(TRAPEZ Energy)");
                     h_corr_e_fpga_trapez[l_i][l_j][l_k] = MakeTH1('F', chis,chead,2000,0.999,1.001);
                 }
 
                 for (l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Peaks/PEAK   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Peaks/PEAK   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Peak");
                     h_peak[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Valleys/VALLEY   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Valleys/VALLEY   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"Valley");
                     h_valley[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Timediff/Trigger time - Hit time   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Timediff/Trigger time - Hit time   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"TRIG-HIT");
                     h_trgti_hitti[l_i][l_j][l_k] = MakeTH1('I', chis,chead,2000,-1000,1000);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Hitpat_Cha_List/Channel hit pattern per event (list)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Hitpat_Cha_List/Channel hit pattern per event (list)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"HITPAT_Cha_List");
                     h_ch_hitpat[l_i][l_j][l_k] = MakeTH1('I', chis,chead,11,-1,10);
                 }
 
-                sprintf(chis,"Hitpat_Feb_List/Hit Pattern (list)  SFP: %2d FEBEX: %2d", l_i, l_j);
+                sprintf(chis,"TPLEIADESRawProc/Hitpat_Feb_List/Hit Pattern (list)  SFP: %2d FEBEX: %2d", l_i, l_j);
                 sprintf(chead,"Hitpat_List");
                 h_hitpat[l_i][l_j] = MakeTH1('I', chis,chead,20,-2,18);
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Hitpat_Cha_Trace/Channel hit pattern per event (trace)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Hitpat_Cha_Trace/Channel hit pattern per event (trace)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"HITPAT_Cha_Trace");
                     h_ch_hitpat_tr[l_i][l_j][l_k] = MakeTH1('I', chis,chead,11,-1,10);
                 }
 
-                sprintf(chis,"Hitpat_Feb_Trace/Hit Pattern (trace)  SFP: %2d FEBEX: %2d", l_i, l_j);
+                sprintf(chis,"TPLEIADESRawProc/Hitpat_Feb_Trace/Hit Pattern (trace)  SFP: %2d FEBEX: %2d", l_i, l_j);
                 sprintf(chead,"Hitpat_Trace");
                 h_hitpat_tr[l_i][l_j] = MakeTH1('I', chis,chead,20,-2,18);
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"Hitpat_Cha_Diff/Channel hit pattern per event (diff)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/Hitpat_Cha_Diff/Channel hit pattern per event (diff)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"HITPAT_Cha_Diff");
                     h_ch_hitpat_di[l_i][l_j][l_k] = MakeTH1('I', chis,chead,11,-1,10);
                 }
 
-                sprintf(chis,"Hitpat_Feb_Diff/Hit Pattern (diff)  SFP: %2d FEBEX: %2d", l_i, l_j);
+                sprintf(chis,"TPLEIADESRawProc/Hitpat_Feb_Diff/Hit Pattern (diff)  SFP: %2d FEBEX: %2d", l_i, l_j);
                 sprintf(chead,"Hitpat_Trace");
                 h_hitpat_di[l_i][l_j] = MakeTH1('I', chis,chead,20,-2,18);
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"ADC_Spectra/ADC Spectrum [mV]  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/ADC_Spectra/ADC Spectrum [mV]  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"ADC Spectrum");
                     h_adc_spect[l_i][l_j][l_k] = MakeTH1('D', chis,chead,16384,-1000,1000);
                 }

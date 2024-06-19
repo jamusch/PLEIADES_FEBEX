@@ -108,6 +108,21 @@ TPLEIADESDetector::~TPLEIADESDetector()
     TGo4Log::Info("TPLEIADESDetector: Delete instance");
 }
 
+TPLEIADESDetChan* TPLEIADESDetector::GetChannel(TString chname)
+{
+    TPLEIADESDetChan* theChannel = 0;
+    Short_t numChans = getNElements();
+    for(int i=0; i<numChans; ++i)
+    {
+        theChannel = (TPLEIADESDetChan*) getEventElement(i);
+        if(theChannel->GetName() == chname)
+        {
+            return theChannel;
+        }
+    }
+    return 0;
+}
+
 void TPLEIADESDetector::SetupDetector()    // builds detector channels based on type of detector
 {
     if(fParDet == 0)
@@ -125,6 +140,8 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         {
             modname.Form("%s_pStrip%d", fDetName.Data(), j);
             TPLEIADESDetChan *pStrip = new TPLEIADESDetChan(modname.Data(), j);
+            pStrip->SetDetName(fDetName.Data());
+            pStrip->SetDetType(fDetType.Data());
             pStrip->SetChanMap(fParDet->fpSideMap[fDetName] + j);
             pStrip->SetChanType("pStrip");
             addEventElement(pStrip);
@@ -132,6 +149,8 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         // setup n-side
         modname.Form("%s_nSide", fDetName.Data());
         TPLEIADESDetChan *nSide = new TPLEIADESDetChan(modname.Data(), 7);
+        nSide->SetDetName(fDetName.Data());
+        nSide->SetDetType(fDetType.Data());
         nSide->SetChanMap(fParDet->fnSideMap[fDetName]);
         nSide->SetChanType("nSide");
         addEventElement(nSide);
@@ -144,6 +163,8 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         {
             modname.Form("%s_%s", fDetName.Data(), dssdNames[j].Data());
             TPLEIADESDetChan *dssdChan = new TPLEIADESDetChan(modname.Data(), j);
+            dssdChan->SetDetName(fDetName.Data());
+            dssdChan->SetDetType(fDetType.Data());
             dssdChan->SetChanMap(fParDet->fDSSDMap[j]);
             dssdChan->SetChanType("dssdChan");
             addEventElement(dssdChan);
@@ -154,6 +175,8 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         {
             modname.Form("%s_%s", fDetName.Data(), posNames[j].Data());
             TPLEIADESNormPos *posChan = new TPLEIADESNormPos(modname.Data(), j+4);  //add 4 to ensure correct Event Element ID is given
+            posChan->SetDetName(fDetName.Data());
+            posChan->SetDetType(fDetType.Data());
             addEventElement(posChan);
         }
 
@@ -166,6 +189,8 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         {
             modname.Form("%s_%s", fDetName.Data(), crysNames[j].Data());
             TPLEIADESDetChan *crysChan = new TPLEIADESDetChan(modname.Data(), j);
+            crysChan->SetDetName(fDetName.Data());
+            crysChan->SetDetType(fDetType.Data());
             crysChan->SetChanMap(fParDet->fCrystalMap[j]);
             crysChan->SetChanType("crysChan");
             addEventElement(crysChan);

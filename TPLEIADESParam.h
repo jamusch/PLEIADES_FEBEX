@@ -53,4 +53,4 @@ class TPLEIADESParam : public TGo4Parameter
 
 #endif //TPLEIADESPARAM_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------

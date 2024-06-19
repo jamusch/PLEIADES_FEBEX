@@ -24,11 +24,13 @@ class TPLEIADESParam;
 class TPLEIADESDetProc : public TGo4EventProcessor
 {
     public:
-        TPLEIADESDetProc() ;
+        TPLEIADESDetProc();
         TPLEIADESDetProc(const char* name);
         virtual ~TPLEIADESDetProc() ;
 
         Bool_t BuildEvent(TGo4EventElement* target); // event processing function
+
+        void InitDisplays(TPLEIADESDetEvent* out);    // init displays for event based on detectors in event
 
     private:
         /** parameter for runtime settings*/
@@ -42,4 +44,4 @@ class TPLEIADESDetProc : public TGo4EventProcessor
 
 #endif // TPLEIADESDETPROC_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------

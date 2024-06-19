@@ -130,4 +130,4 @@ class TPLEIADESRawProc : public TGo4EventProcessor
 
 #endif //TPLEIADESRAWPROC_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------

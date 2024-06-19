@@ -48,4 +48,4 @@ class TPLEIADESPhysProc : public TGo4EventProcessor
 
 #endif // TPLEIADESPHYSPROC_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------

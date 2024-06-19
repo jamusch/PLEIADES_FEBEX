@@ -82,4 +82,4 @@ class TPLEIADESPhysEvent : public TGo4CompositeEvent
 
 #endif // TPLEIADESPHYSEVENT_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------

@@ -119,5 +119,5 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent
 
 #endif //TPLEIADESRAWEVENT_H
 
-//----------------------------END OF GO4 SOURCE FILE ---------------------
+//----------------------------END OF GO4 HEADER FILE ---------------------
 
