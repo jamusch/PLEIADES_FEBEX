@@ -104,6 +104,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     // called by framework for each mbs input event.
 
     fOutEvent->SetValid(kFALSE); // initialize next output as not filled, i.e.it is only stored when something is in
+    fOutEvent->fPhysTrigger = kFALSE;   // reset physics trigger each event
 
     isValid = kTRUE;            // input/ouput events look good
 
@@ -307,6 +308,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
     //------------------------------------------------------------------------
     // for first event, make histograms
+    // NB: f_make_histo also sets fTraceSize parameter for use in later histograms. Be careful turning it off!
     if(l_first == 0)	// l_first defined as zero, so triggered if first event
     {
         l_first = 1;
@@ -427,6 +429,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 if(l_trig_type_triva == 1) // physics event
                 {
                     h_hitpat[l_sfp_id][l_feb_id]->Fill (-1, 1);
+                    fOutEvent->fPhysTrigger = kTRUE;
 
                     for(l_i=0; l_i<l_n_hit; l_i++)  // stuff happens based on n_hits
                     {
@@ -814,6 +817,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 {
                     TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
 
+                    theChannel->fRHitMultiplicity = l_ch_hitpat[l_i][l_j][l_k];
                     theChannel->fRFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
                     theChannel->fRFPGAHitTime = l_fpga_hitti[l_i][l_j][l_k];
 
@@ -892,6 +896,9 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
     l_tra_size   = TRACE_SIZE;
     l_trap_n_avg = TRAPEZ_N_AVG;
     #endif // USE_MBS_PARAM
+
+    // set trace size value in parameter
+    fPar->fTraceSize = l_tra_size;
 
     if(l_first2 == 0)
     {

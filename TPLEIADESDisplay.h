@@ -17,9 +17,11 @@
 
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESDetEvent.h"
+#include "TPLEIADESDetProc.h"
 
 #include <vector>
 
+class TPLEIADESParam;
 class TPLEIADESChanDisplay;
 
 class TPLEIADESDisplay : public TGo4EventProcessor
@@ -28,6 +30,8 @@ class TPLEIADESDisplay : public TGo4EventProcessor
         TPLEIADESDisplay();
         TPLEIADESDisplay(const char* name);
         virtual ~TPLEIADESDisplay();
+
+        static TPLEIADESParam* fParDisplay; // required to use fPar in histogram construction
 
     private:
 
@@ -52,6 +56,7 @@ class TPLEIADESDetDisplay : public TPLEIADESDisplay
         void InitDisplay();
 
         TH1* hDetHitPattern;
+        TH2* hDetEnergyPattern;
 
     private:
         std::vector<TPLEIADESChanDisplay*> fChannels;
@@ -70,8 +75,14 @@ class TPLEIADESChanDisplay : public TPLEIADESDisplay
 
         TString GetChanName();
 
-        /** init display creates histograms **/
-        void InitDisplay();
+        /** histogram functions **/
+        void InitDisplay();     // initialises histograms
+        void FillTraces();      // overwrites trace histograms
+
+        TH1* hHitMultiplicity;
+        TH1* hTraceChan;
+        TH1* hTraceBLRChan;
+        TH1* hTraceTRAPEZChan;
 
     private:
 

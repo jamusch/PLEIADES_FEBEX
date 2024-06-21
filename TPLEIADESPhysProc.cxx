@@ -83,7 +83,7 @@ Int_t TPLEIADESPhysProc::pStripSelect(TString method, TPLEIADESDetector* theDete
         }
     }
 
-    if(hitLoc == -99) { TGo4Log::Info("TPLEIADESPhysProc::pStripSelect no hit found on p-strip. Why did event trigger?"); }
+    if(hitLoc == -99) { TGo4Log::Info("TPLEIADESPhysProc::pStripSelect no hit found on p-strip. Pulser event?"); }
     detPhysics->fpEnergy = totEnergy;   // assign selected p-strip energy to detector
 
     return 0;
@@ -206,9 +206,9 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
             {
-                if((theDetector->getNElements()) != 6)
+                if((theDetector->getNElements()) != 4)
                 {
-                    TGo4Log::Warn("Detector %s is a DSSD but does not have 6 elements. Detector is setup incorrectly.", dname.Data());
+                    TGo4Log::Warn("Detector %s is a DSSD but does not have 4 elements. Detector is setup incorrectly.", dname.Data());
                     return kFALSE;
                 }
 

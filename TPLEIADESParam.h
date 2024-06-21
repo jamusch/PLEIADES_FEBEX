@@ -39,6 +39,7 @@ class TPLEIADESParam : public TGo4Parameter
         // functions for connecting fPar pointers
         Bool_t SetConfigDetEvent();
         Bool_t SetConfigPhysEvent();
+        Bool_t SetConfigDisplay();
 
         // parameters for step2 - grouping by Detectors
         std::vector<TString> fDetNameVec;       // list of detector names
@@ -47,6 +48,9 @@ class TPLEIADESParam : public TGo4Parameter
         std::map<TString, UInt_t> fnSideMap;    // a map of names to Si Pad n-side positions
         UInt_t fDSSDMap[4];                     // a list of DSSD channel positions
         UInt_t fCrystalMap[2];                  // a list of Crystal channel positions
+
+        // parameter for trace size
+        UInt_t fTraceSize = 0;
 
     ClassDef(TPLEIADESParam,1)
 };

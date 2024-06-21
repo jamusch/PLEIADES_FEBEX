@@ -18,8 +18,10 @@
 
 #include "TPLEIADESDetProc.h"
 #include "TPLEIADESRawEvent.h"
-#include "TPLEIADESParam.h"
 #include "TPLEIADESDisplay.h"
+
+#include "TH1.h"
+#include "TH2.h"
 
 //------------------------------------------------------------------------
 TPLEIADESDetProc::TPLEIADESDetProc() : TGo4EventProcessor("Proc")
@@ -29,12 +31,17 @@ TPLEIADESDetProc::TPLEIADESDetProc() : TGo4EventProcessor("Proc")
 
 //------------------------------------------------------------------------
 // this one is used in standard factory
-TPLEIADESDetProc::TPLEIADESDetProc(const char* name) : TGo4EventProcessor(name)
+TPLEIADESDetProc::TPLEIADESDetProc(const char* name) :
+    TGo4EventProcessor(name), fOutEvent(0)
 {
     TGo4Log::Info("TPLEIADESDetProc: Create instance %s", name);
     // no need to set param macro as this was already done in first step
     fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam"));
-    if(fPar) { fPar->SetConfigDetEvent(); }
+    if(fPar)
+    {
+        fPar->SetConfigDetEvent();
+        fPar->SetConfigDisplay();
+    }
 }
 
 //------------------------------------------------------------------------
@@ -62,6 +69,8 @@ void TPLEIADESDetProc::InitDisplays(TPLEIADESDetEvent* out)
             chanDisplay->InitDisplay();
             detDisplay->AddChanDisplay(chanDisplay);    // link channel to detector display
         }
+
+        fDetDisplays.push_back(detDisplay);
     }
 }
 
@@ -84,13 +93,10 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         fOutEvent = (TPLEIADESDetEvent*) target;
         InitDisplays(fOutEvent);    // initialise display histograms
     }
-    else
-    {
-        fOutEvent = (TPLEIADESDetEvent*) target;
-    }
 
     // initialize next output as not filled, i.e. it is only stored when something is in
     fOutEvent->SetValid(isValid);
+    fOutEvent->fPhysTrigger = RawEvent->fPhysTrigger;
 
     isValid = kTRUE;    // input/output events look good
 
@@ -98,6 +104,11 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
     for(const TString& dname : fPar->fDetNameVec)
     {
         TPLEIADESDetector *theDetector = fOutEvent->GetDetector(dname);
+        TPLEIADESDetDisplay *detDisplay = fDetDisplays[theDetector->getId()];
+        //std::cout << "Sanity check!: detector name: " << theDetector->GetDetName() << " matches det display: " << detDisplay->fDetector->GetDetName() << std::endl;
+
+        if(fOutEvent->fPhysTrigger) { detDisplay->hDetHitPattern->Fill(-1,1); } // fill physics trigger bin in hit pattern
+
         UInt_t rawChPos;
 
         if((theDetector->GetDetType()) == "SiPad")
@@ -116,18 +127,28 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             for(int j=0; j<7; ++j)
             {
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j); // get detector channel
+                TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName()); // get chan display associated with channel
+
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);          // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = pBoard->GetChannel(rawChPos);
 
-                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+                theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
+                theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
+                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
-                theDetChan->fDTrace          = theRawChan->fRTrace;
-                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
+                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace           = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
                 #endif
+
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
+                chanDisplay->FillTraces();
+
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
+                if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(j, theDetChan->fDTrapezEnergy, 1); }
             }
 
             // load the data for the n-side
@@ -135,6 +156,8 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             TPLEIADESFebBoard *nBoard = RawEvent->GetBoard(nBoardID);   // get board from input event with board location
 
             TPLEIADESDetChan *theDetChan = theDetector->GetChannel(7);
+            TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName());
+
             rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
             TPLEIADESFebChannel *theRawChan = nBoard->GetChannel(rawChPos);
 
@@ -147,16 +170,21 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
             theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
             #endif
+
+            if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
+            chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
+            chanDisplay->FillTraces();
+
+            if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(7,1); }
+            if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(7, theDetChan->fDTrapezEnergy, 1); }
         }
         else if((theDetector->GetDetType()) == "DSSD")
         {
-            if((theDetector->getNElements()) != 6)
+            if((theDetector->getNElements()) != 4)
             {
                 TGo4Log::Warn("Detector %s is a DSSD but does not have 6 elements. Detector is setup incorrectly.", dname.Data());
                 return kFALSE;
             }
-
-            UInt_t normVals[4];
 
             // load the 4 DSSD channels from the Raw Event input
             for(int j=0; j<4; ++j)
@@ -166,6 +194,8 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebBoard *dBoard = RawEvent->GetBoard(dBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName());
+
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = dBoard->GetChannel(rawChPos);
 
@@ -179,17 +209,12 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
                 #endif
 
-                normVals[j] = theDetChan->fDFPGAEnergy;  // energy value is stored for normalised position measurement
-            }
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
+                chanDisplay->FillTraces();
 
-            // calculate normalised position values
-            TPLEIADESNormPos *normPos = theDetector->GetNormPos(5);
-            Double_t den = (normVals[0] + normVals[1]); // JAM24: check denominator
-            if(den) normPos->fNormPosX = (normVals[0] - normVals[1])/den;
-            else TGo4Log::Info("TPLEIADESNormPos: DSSD X has 0 energy for this event");
-            den = (normVals[2] + normVals[3]);
-            if(den) normPos->fNormPosY = (normVals[2] - normVals[3])/den;
-            else TGo4Log::Info("TPLEIADESNormPos: DSSD Y has 0 energy for this event");
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
+            }
         }
         else if((theDetector->GetDetType()) == "Crystal")
         {
@@ -207,6 +232,8 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebBoard *cBoard = RawEvent->GetBoard(cBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName());
+
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = cBoard->GetChannel(rawChPos);
 
@@ -219,6 +246,12 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
                 theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
                 #endif
+
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity,1);
+                chanDisplay->FillTraces();
+
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
             }
         }
         else

@@ -40,6 +40,7 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
     /** FEBEX special channel properties **/
+    fRHitMultiplicity = 0;
     fRFPGAEnergy = 0;
     fRFPGAHitTime = 0;
     fRFPGATRAPEZ.clear();

@@ -38,6 +38,10 @@ class TPLEIADESDetChan : public TGo4EventElement
         void SetDetName(TString dname) { fDetName = dname ; }
         TString GetDetName() { return fDetName; }
 
+        /** actions on Go4EventElement ID of detector **/
+        void SetDetId(Short_t id) { fDetId = id ; }
+        Short_t GetDetId() { return fDetId; }
+
         /** actions on type of detector **/
         void SetDetType(TString dtype) { fDetType = dtype; }
         TString GetDetType() { return fDetType; }
@@ -51,13 +55,14 @@ class TPLEIADESDetChan : public TGo4EventElement
         TString GetChanType() { return fChanType; }
 
         /** FEBEX special channel properties **/
+        UInt_t fDHitMultiplicity;
         UInt_t fDFPGAEnergy;
         UInt_t fDFPGAHitTime;
         std::vector<Double_t> fDFPGATRAPEZ;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
-        UInt_t fDTrapezEnergy;
+        Int_t fDTrapezEnergy;
         std::vector<Double_t>   fDTrace;
         std::vector<Double_t>   fDTraceBLR;
         std::vector<Double_t>   fDTraceTRAPEZ;
@@ -65,44 +70,12 @@ class TPLEIADESDetChan : public TGo4EventElement
 
     private:
         TString fDetName;       // detector name setup in set_PLEIADESParam.C
+        Short_t fDetId;         // Go4EventElement id of detector
         TString fDetType;       // detector type
         TString fChanType;      // type of channel
         UInt_t fUniqChanMap;    // channel map to DAQ position
 
     ClassDef(TPLEIADESDetChan, 1)
-};
-
-//------------------------------------------------------------------------
-// TPLEIADESNormPos is a dependent class on TPLEIADESDetector. It is a special class for the normalised position measurement of the DSSD.
-//------------------------------------------------------------------------
-
-class TPLEIADESNormPos : public TGo4EventElement
-{
-    public:
-        TPLEIADESNormPos();
-        TPLEIADESNormPos(const char* name, Short_t id=0);
-        virtual ~TPLEIADESNormPos();
-
-        /** Method called by the framework to clear the event element. **/
-        void Clear(Option_t *opt = "");
-
-        /** actions on unique name of detector **/
-        void SetDetName(TString dname) { fDetName = dname ; }
-        TString GetDetName() { return fDetName; }
-
-        /** actions on type of detector **/
-        void SetDetType(TString dtype) { fDetType = dtype; }
-        TString GetDetType() { return fDetType; }
-
-        /** calculated position quantities **/
-        Double_t fNormPosX;     // normalised position for X
-        Double_t fNormPosY;     // normalised position for Y
-
-    private:
-        TString fDetName;       // detector name setup in set_PLEIADESParam.C
-        TString fDetType;       // detector type
-
-    ClassDef(TPLEIADESNormPos, 1)
 };
 
 //------------------------------------------------------------------------
@@ -130,7 +103,6 @@ class TPLEIADESDetector : public TGo4CompositeEvent
         /** get channel objects created with board **/
         TPLEIADESDetChan* GetChannel(TString chname);
         TPLEIADESDetChan* GetChannel(UInt_t id) { return (TPLEIADESDetChan*) getEventElement(id); }
-        TPLEIADESNormPos* GetNormPos(UInt_t id) { return (TPLEIADESNormPos*) getEventElement(id); }
 
         /** Method called by the framework to clear the event element. **/
         void Clear(Option_t *opt = "");
@@ -164,6 +136,8 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
 
         /** this array keeps the unique names of configured detectors **/
         static std::vector<TString> fgConfigDetectors;
+
+        Bool_t fPhysTrigger;
 
         static TPLEIADESParam* fParDEv; // required to use fPar in DetEvent construction
 

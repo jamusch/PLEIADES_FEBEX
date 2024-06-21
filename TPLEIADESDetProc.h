@@ -18,8 +18,12 @@
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESDetEvent.h"
 #include "TPLEIADESParam.h"
+#include "TPLEIADESDisplay.h"
+
+#include <vector>
 
 class TPLEIADESParam;
+class TPLEIADESDetDisplay;
 
 class TPLEIADESDetProc : public TGo4EventProcessor
 {
@@ -30,7 +34,7 @@ class TPLEIADESDetProc : public TGo4EventProcessor
 
         Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 
-        void InitDisplays(TPLEIADESDetEvent* out);    // init displays for event based on detectors in event
+        void InitDisplays(TPLEIADESDetEvent* out);  // init displays for event based on detectors in event
 
     private:
         /** parameter for runtime settings*/
@@ -38,6 +42,8 @@ class TPLEIADESDetProc : public TGo4EventProcessor
 
         /** reference to output data*/
         TPLEIADESDetEvent* fOutEvent;  //!
+
+        std::vector<TPLEIADESDetDisplay*> fDetDisplays;
 
     ClassDef(TPLEIADESDetProc, 1)
 };

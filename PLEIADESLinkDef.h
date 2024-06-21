@@ -31,7 +31,6 @@
 #pragma link C++ class TPLEIADESDetProc+;
 #pragma link C++ class TPLEIADESDetector+;
 #pragma link C++ class TPLEIADESDetChan+;
-#pragma link C++ class TPLEIADESNormPos+;
 
 #pragma link C++ class TPLEIADESPhysEvent+;
 #pragma link C++ class TPLEIADESPhysProc+;

@@ -42,6 +42,7 @@ void TPLEIADESDetChan::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
     /** FEBEX special channel properties **/
+    fDHitMultiplicity = 0;
     fDFPGAEnergy = 0;
     fDFPGAHitTime = 0;
     fDFPGATRAPEZ.clear();
@@ -53,35 +54,6 @@ void TPLEIADESDetChan::Clear(Option_t *opt)
     fDTraceBLR.clear();
     fDTraceTRAPEZ.clear();
     #endif
-}
-
-
-//------------------------------------------------------------------------
-// TPLEIADESNormPos is a dependent class on TPLEIADESDetector. It is a special class for the normalised position measurement of the DSSD.
-//------------------------------------------------------------------------
-
-TPLEIADESNormPos::TPLEIADESNormPos() :
-    TGo4EventElement()
-{
-    TGo4Log::Info("TPLEIADESNormPos: Create instance");
-}
-
-TPLEIADESNormPos::TPLEIADESNormPos(const char* name, Short_t id) :
-    TGo4EventElement(name, name, id)
-{
-    TGo4Log::Info("TPLEIADESNormPos: Create instance %s with composite ID %d", name, id);
-}
-
-TPLEIADESNormPos::~TPLEIADESNormPos()
-{
-    TGo4Log::Info("TPLEIADESNormPos: Delete instance");
-}
-
-void TPLEIADESNormPos::Clear(Option_t *opt)
-{
-    // all members should be cleared, i.e. assigned to a "not filled" value
-    fNormPosX = 0;
-    fNormPosY = 0;
 }
 
 //------------------------------------------------------------------------
@@ -141,6 +113,7 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
             modname.Form("%s_pStrip%d", fDetName.Data(), j);
             TPLEIADESDetChan *pStrip = new TPLEIADESDetChan(modname.Data(), j);
             pStrip->SetDetName(fDetName.Data());
+            pStrip->SetDetId(getId());
             pStrip->SetDetType(fDetType.Data());
             pStrip->SetChanMap(fParDet->fpSideMap[fDetName] + j);
             pStrip->SetChanType("pStrip");
@@ -150,6 +123,7 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
         modname.Form("%s_nSide", fDetName.Data());
         TPLEIADESDetChan *nSide = new TPLEIADESDetChan(modname.Data(), 7);
         nSide->SetDetName(fDetName.Data());
+        nSide->SetDetId(getId());
         nSide->SetDetType(fDetType.Data());
         nSide->SetChanMap(fParDet->fnSideMap[fDetName]);
         nSide->SetChanType("nSide");
@@ -164,22 +138,12 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
             modname.Form("%s_%s", fDetName.Data(), dssdNames[j].Data());
             TPLEIADESDetChan *dssdChan = new TPLEIADESDetChan(modname.Data(), j);
             dssdChan->SetDetName(fDetName.Data());
+            dssdChan->SetDetId(getId());
             dssdChan->SetDetType(fDetType.Data());
             dssdChan->SetChanMap(fParDet->fDSSDMap[j]);
             dssdChan->SetChanType("dssdChan");
             addEventElement(dssdChan);
         }
-        // setup secondary channels for Normalised Position calculation
-        TString posNames[2] = {"NormPosX", "NormPosY"};
-        for(int j=0; j<2; ++j)
-        {
-            modname.Form("%s_%s", fDetName.Data(), posNames[j].Data());
-            TPLEIADESNormPos *posChan = new TPLEIADESNormPos(modname.Data(), j+4);  //add 4 to ensure correct Event Element ID is given
-            posChan->SetDetName(fDetName.Data());
-            posChan->SetDetType(fDetType.Data());
-            addEventElement(posChan);
-        }
-
     }
     else if(fDetType == "Crystal")  // setup the Crystal
     {
@@ -190,6 +154,7 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
             modname.Form("%s_%s", fDetName.Data(), crysNames[j].Data());
             TPLEIADESDetChan *crysChan = new TPLEIADESDetChan(modname.Data(), j);
             crysChan->SetDetName(fDetName.Data());
+            crysChan->SetDetId(getId());
             crysChan->SetDetType(fDetType.Data());
             crysChan->SetChanMap(fParDet->fCrystalMap[j]);
             crysChan->SetChanType("crysChan");

@@ -42,13 +42,14 @@ class TPLEIADESFebChannel : public TGo4EventElement
         void Clear(Option_t *opt = "") override;
 
         /** FEBEX special channel properties **/
+        UInt_t fRHitMultiplicity;
         UInt_t fRFPGAEnergy;
         UInt_t fRFPGAHitTime;
         std::vector<Double_t> fRFPGATRAPEZ;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
-        UInt_t fRTrapezEnergy;
+        Int_t fRTrapezEnergy;
         std::vector<Double_t>  fRTrace;
         std::vector<Double_t>   fRTraceBLR;
         std::vector<Double_t>   fRTraceTRAPEZ;
@@ -113,6 +114,7 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent
         static std::vector<UInt_t> fgConfigBoards;
 
         Int_t fSequenceNumber;      // event sequence number incremented by MBS Trigger
+        Bool_t fPhysTrigger;        // was event a physics trigger
 
     ClassDefOverride(TPLEIADESRawEvent,1)
 };
