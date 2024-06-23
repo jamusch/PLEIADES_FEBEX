@@ -77,6 +77,10 @@ class TPLEIADESPhysEvent : public TGo4CompositeEvent
 
         static TPLEIADESParam* fParPEv; // required to use fPar in PhysEvent construction
 
+        Int_t fSequenceNumber;  // tracks MBS event number
+        Bool_t fPhysTrigger;    // tracks MBS physics trigger
+
+
     ClassDef(TPLEIADESPhysEvent, 1)
 };
 

@@ -96,7 +96,7 @@ void set_PLEIADESParam()
     param0->fDetNameVec.push_back(sBPname); // add detector to named list
     param0->fDetTypeMap[sBPname] = "Crystal"; // define detector type
     // for Crystal, front should go to 0, back to 1
-    param0->fCrystalMap[0] = 0x14E;         // BP pin1 goes to card 4, ch 14
-    param0->fCrystalMap[1] = 0x14F;         // BP pin2 goes to card 4, ch 15
+    param0->fCrystalMap[0] = 0x14C;         // BP pin1 goes to card 4, ch 12
+    param0->fCrystalMap[1] = 0x14D;         // BP pin2 goes to card 4, ch 13
 
 }

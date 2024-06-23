@@ -94,9 +94,11 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
         InitDisplays(fOutEvent);    // initialise display histograms
     }
 
+    fOutEvent->fSequenceNumber = RawEvent->fSequenceNumber;
+    fOutEvent->fPhysTrigger = RawEvent->fPhysTrigger;
+
     // initialize next output as not filled, i.e. it is only stored when something is in
     fOutEvent->SetValid(isValid);
-    fOutEvent->fPhysTrigger = RawEvent->fPhysTrigger;
 
     isValid = kTRUE;    // input/output events look good
 

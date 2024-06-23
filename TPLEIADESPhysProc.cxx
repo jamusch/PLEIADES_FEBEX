@@ -20,6 +20,9 @@
 #include "TPLEIADESDetEvent.h"
 #include "TPLEIADESParam.h"
 
+#include "TH1.h"
+#include "TH2.h"
+
 //------------------------------------------------------------------------
 TPLEIADESPhysProc::TPLEIADESPhysProc() : TGo4EventProcessor("Proc")
 {
@@ -28,7 +31,8 @@ TPLEIADESPhysProc::TPLEIADESPhysProc() : TGo4EventProcessor("Proc")
 
 //------------------------------------------------------------------------
 // this one is used in standard factory
-TPLEIADESPhysProc::TPLEIADESPhysProc(const char* name) : TGo4EventProcessor(name)
+TPLEIADESPhysProc::TPLEIADESPhysProc(const char* name) :
+    TGo4EventProcessor(name), fOutEvent(0)
 {
     TGo4Log::Info("TPLEIADESPhysProc: Create instance %s", name);
     // no need to set param macro as this was already done in first step
@@ -45,7 +49,7 @@ TPLEIADESPhysProc::~TPLEIADESPhysProc()
 //------------------------------------------------------------------------
 // standard energy uses FPGA or TRAPEZ energy directly from TPLEIADESDetEvent, ie no pulse shape analysis.
 // p-sides are handled by selection of active p-strip for SiPads and summation of L/R for DSSD
-Int_t TPLEIADESPhysProc::pStripSelect(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)
+void TPLEIADESPhysProc::pStripSelect(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)
 // method is either FPGA or TRAPEZ, detName is detector name
 {
     if(!theDetector) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no det event handed to pStripSelect!"); }
@@ -73,36 +77,32 @@ Int_t TPLEIADESPhysProc::pStripSelect(TString method, TPLEIADESDetector* theDete
             else if(j == hitLoc+1)  // is hit a neighbour of first hit?
             {
                 totEnergy += stripEnergy;
-                TGo4Log::Info("TPLEIADESPhysProc::pStripSelect interstrip event, composite energy used.");
+                //TGo4Log::Info("TPLEIADESPhysProc::pStripSelect interstrip event, composite energy used.");
             }
             else
             {
-                TGo4Log::Warn("TPLEIADESPhysProc::pStripSelect multiple strips hit but not neighbours, skipping!");
+                //TGo4Log::Warn("TPLEIADESPhysProc::pStripSelect multiple strips hit but not neighbours, skipping!");
                 totEnergy = -99;
             }
         }
     }
 
-    if(hitLoc == -99) { TGo4Log::Info("TPLEIADESPhysProc::pStripSelect no hit found on p-strip. Pulser event?"); }
+    //if(hitLoc == -99) { TGo4Log::Info("TPLEIADESPhysProc::pStripSelect no hit found on p-strip. Pulser event?"); }
     detPhysics->fpEnergy = totEnergy;   // assign selected p-strip energy to detector
-
-    return 0;
 }
 
 //------------------------------------------------------------------------
-Int_t TPLEIADESPhysProc::stdSinSideEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)     // fills n-side energy from scalars
+void TPLEIADESPhysProc::stdSinSideEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)     // fills n-side energy from scalars
 {
     if(!theDetector) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no det event handed to pStripSelect!"); }
     else if(!detPhysics) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no phys event handed to pStripSelect!"); }
 
     TPLEIADESDetChan *nsideDetChan = theDetector->GetChannel(7);
     if(method == "FPGA") { detPhysics->fnEnergy = nsideDetChan->fDFPGAEnergy; }
-
-    return 0;
 }
 
 //------------------------------------------------------------------------
-Int_t TPLEIADESPhysProc::stdDSSDEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)   // fills DSSD energy from scalars
+void TPLEIADESPhysProc::stdDSSDEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)   // fills DSSD energy from scalars
 {
     Int_t chanEnergy = -99; // channel energy placeholder
     Double_t pEnergy = 0;    // value for total energy deposited in p-side
@@ -126,18 +126,16 @@ Int_t TPLEIADESPhysProc::stdDSSDEnergy(TString method, TPLEIADESDetector* theDet
     //fill energies
     detPhysics->fpEnergy = pEnergy;
     detPhysics->fnEnergy = nEnergy;
-
-    return 0;
 }
 
 //------------------------------------------------------------------------
-Int_t TPLEIADESPhysProc::stdDSSDPosition(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics) // standard computation of normalised position
+void TPLEIADESPhysProc::stdDSSDPosition(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics) // standard computation of normalised position
 {
-    return 0;
+
 }
 
 //------------------------------------------------------------------------
-Int_t TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)// fills Crystal energies from scalars
+void TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)// fills Crystal energies from scalars
 {
     for(int j=0; j<2; ++j)
     {
@@ -154,8 +152,80 @@ Int_t TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* the
             else if(j==1) { detPhysics->fnEnergy = chanEnergy; }
         }
     }
+}
 
-    return 0;
+void TPLEIADESPhysProc::FillClippingStats()
+{
+    std::vector<Double_t> trace, traceBLR;
+    Int_t   startRise,  satTime,    satReentry;
+    Bool_t  startRec,   satRec,     reentRec;
+    Int_t nsideCnt = 0;
+
+    for(const TString& dname : fPar->fDetNameVec)
+    {
+        TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
+        startRise = -99; satTime = -999; satReentry = -999;
+        startRec = satRec = reentRec = kFALSE;
+
+        if(theDetector->GetDetType() == "SiPad")
+        {
+            trace = theDetector->GetChannel(7)->fDTrace;
+            traceBLR = theDetector->GetChannel(7)->fDTraceBLR;
+
+            for(uint i=0; i < (traceBLR.size()-5); ++i)
+            {
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+                if(!satRec   && trace[i] == 16383) { satRec = kTRUE; satTime = i; }
+                if(!reentRec && trace[i] == 16383 && trace[i+1]<trace[i] && trace[i+2] != 16383 && trace[i+3] != 16383 && trace[i+4] != 16383 && trace[i+5] != 16383) { reentRec = kTRUE; satReentry = i; }
+            }
+            //std::cout << "n Side " << dname << ": Signal start time was " << startRise << ", saturation time was " << satTime << ", reentry time was " << satReentry << std::endl;
+            fPhysDisplay->hRiseTimeNSides[nsideCnt]->Fill(satTime-startRise);
+            fPhysDisplay->hReentryTimeNSides[nsideCnt]->Fill(satReentry-startRise);
+            fPhysDisplay->hPulseTimeNSides[nsideCnt]->Fill(2997-startRise);
+            fPhysDisplay->hClipHeightNSides[nsideCnt]->Fill(traceBLR[satTime]);
+            if(satTime != -999) { fPhysDisplay->hEndHeightNSides[nsideCnt]->Fill(traceBLR[2997]); }
+
+            nsideCnt += 1;
+        }
+        else if(theDetector->GetDetType() == "Crystal")
+        {
+            trace = theDetector->GetChannel(0)->fDTrace;
+            traceBLR = theDetector->GetChannel(0)->fDTraceBLR;
+
+            for(uint i=0; i < (traceBLR.size()-5); ++i)
+            {
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+                if(!satRec   && trace[i] == 16383) { satRec = kTRUE; satTime = i; }
+                if(!reentRec && trace[i] == 16383 && trace[i+1]<trace[i] && trace[i+2] != 16383 && trace[i+3] != 16383 && trace[i+4] != 16383 && trace[i+5] != 16383) { reentRec = kTRUE; satReentry = i; }
+            }
+            //std::cout << "Crys Front: Signal start time was " << startRise << ", saturation time was " << satTime << ", reentry time was " << satReentry << std::endl;
+            fPhysDisplay->hRiseTimeCrysFr->Fill(satTime-startRise);
+            fPhysDisplay->hReentryTimeCrysFr->Fill(satReentry-startRise);
+            fPhysDisplay->hPulseTimeCrysFr->Fill(2997-startRise);
+            fPhysDisplay->hClipHeightCrysFr->Fill(traceBLR[satTime]);
+            if(satTime != -999) { fPhysDisplay->hEndHeightCrysFr->Fill(traceBLR[2997]); }
+
+            // repeat for back side
+            startRise = -99; satTime = -999;
+            startRec = satRec = reentRec = kFALSE;
+
+            trace = theDetector->GetChannel(1)->fDTrace;
+            traceBLR = theDetector->GetChannel(1)->fDTraceBLR;
+
+            for(uint i=0; i < (traceBLR.size()-5); ++i)
+            {
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+                if(!satRec   && trace[i] == 16383) { satRec = kTRUE; satTime = i; }
+                if(!reentRec && trace[i] == 16383 && trace[i+1]<trace[i] && trace[i+2] != 16383 && trace[i+3] != 16383 && trace[i+4] != 16383 && trace[i+5] != 16383) { reentRec = kTRUE; satReentry = i; }
+            }
+            //std::cout << "Crys Back: Signal start time was " << startRise << ", saturation time was " << satTime << ", reentry time was " << satReentry << std::endl;
+            fPhysDisplay->hRiseTimeCrysBk->Fill(satTime-startRise);
+            fPhysDisplay->hReentryTimeCrysBk->Fill(satReentry-startRise);
+            fPhysDisplay->hPulseTimeCrysBk->Fill(2997-startRise);
+            fPhysDisplay->hClipHeightCrysBk->Fill(traceBLR[satTime]);
+            if(satTime != -999) { fPhysDisplay->hEndHeightCrysBk->Fill(traceBLR[2997]); }
+        }
+    }
 }
 
 //------------------------------------------------------------------------
@@ -165,29 +235,36 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 {
     Bool_t isValid = kFALSE;    // validity of output event
 
-    TPLEIADESDetEvent *detEvent = (TPLEIADESDetEvent*) GetInputEvent();
-    if(!detEvent || !detEvent->IsValid())
+    fInEvent = (TPLEIADESDetEvent*) GetInputEvent();
+    if(!fInEvent || !fInEvent->IsValid())
     {
         TGo4Log::Error("TPLEIADESPhysProc: no input event!");
         return isValid;
     }
 
-    fOutEvent = (TPLEIADESPhysEvent*) target;
     if(fOutEvent == 0)
     {
-        GO4_STOP_ANALYSIS_MESSAGE("NEVER COME HERE: output event is not configured, wrong class!");
+        fOutEvent = (TPLEIADESPhysEvent*) target;
+
+        fPhysDisplay = new TPLEIADESPhysDisplay();
+        fPhysDisplay->InitDisplay(fInEvent);
     }
+
+    fOutEvent->fSequenceNumber = fInEvent->fSequenceNumber;
+    fOutEvent->fPhysTrigger = fInEvent->fPhysTrigger;
 
     fOutEvent->SetValid(isValid);   // initialize next output as not filled, i.e. it is only stored when something is in
 
     isValid = kTRUE;                // input/output events look good
 
+    //------------------------------------------------------------------------
+    // Process all detectors to calculate final energy values.
     try
     {
         // loop over detectors to fill physics properties
         for(const TString& dname : fPar->fDetNameVec)
         {
-            TPLEIADESDetector *theDetector = detEvent->GetDetector(dname);
+            TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
             TPLEIADESDetPhysics *detPhysics = fOutEvent->GetDetector(dname);
 
             if((theDetector->GetDetType()) == "SiPad")  // select SiPads for pStrip search
@@ -199,10 +276,10 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 // search for active p-strip for p-side energy
-                TPLEIADESPhysProc::pStripSelect("FPGA", theDetector, detPhysics);
+                pStripSelect("FPGA", theDetector, detPhysics);
 
                 //fill n-side energy
-                TPLEIADESPhysProc::stdSinSideEnergy("FPGA", theDetector, detPhysics);
+                stdSinSideEnergy("FPGA", theDetector, detPhysics);
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
             {
@@ -213,7 +290,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 //fill DSSD energies
-                TPLEIADESPhysProc::stdDSSDEnergy("FPGA", theDetector, detPhysics);
+                stdDSSDEnergy("FPGA", theDetector, detPhysics);
             }
             else if((theDetector->GetDetType()) == "Crystal")  // fill energies for crystal
             {
@@ -224,7 +301,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 // load the 2 crystal channels from the Raw Event input
-                TPLEIADESPhysProc::stdCrystalEnergy("FPGA", theDetector, detPhysics);
+                stdCrystalEnergy("FPGA", theDetector, detPhysics);
             }
             else
             {
@@ -236,7 +313,19 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     catch (const invalid_argument&  error) { TGo4Log::Error(error.what()); return isValid; }
     catch (const runtime_error&     error) { TGo4Log::Error(error.what()); return isValid; }
 
+    //------------------------------------------------------------------------
+    // Calculate statistics on signal clipping
+    FillClippingStats();
+
     fOutEvent->SetValid(isValid);     // now event is filled, store event
+
+    //------------------------------------------------------------------------
+    // JAM 12-Dec-2023: Added slow motion (eventwise step mode) as example how to use parameter container flag
+    //------------------------------------------------------------------------
+    if(fPar->fSlowMotion)
+    {
+        GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", fOutEvent->fSequenceNumber);
+    }
 
     return isValid;
 }

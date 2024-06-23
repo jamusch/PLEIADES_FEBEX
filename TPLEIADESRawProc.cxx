@@ -856,6 +856,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
     bad_event:
 
+    /**
     //------------------------------------------------------------------------
     // JAM 12-Dec-2023: Added slow motion (eventwise step mode) as example how to use parameter container flag
     //------------------------------------------------------------------------
@@ -864,6 +865,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
         Int_t evnum = source->GetCount();
         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
     }
+    **/
 
     return isValid;
 }

@@ -182,13 +182,13 @@ void TPLEIADESDetector::Clear(Option_t *opt)
 TPLEIADESParam *TPLEIADESDetEvent::fParDEv = 0;
 
 TPLEIADESDetEvent::TPLEIADESDetEvent() :
-    TGo4CompositeEvent()
+    TGo4CompositeEvent(), fSequenceNumber(0)
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance");
 }
 
 TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
-    TGo4CompositeEvent(name, name, id)
+    TGo4CompositeEvent(name, name, id), fSequenceNumber(0)
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance %s with composite ID %d", name, id);
 

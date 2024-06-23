@@ -23,7 +23,7 @@
 #include <iostream>
 
 //------------------------------------------------------------------------
-// TPLEIADESDisplay is
+// TPLEIADESDisplay is the base display class
 //------------------------------------------------------------------------
 // forward declaration of fParChDisp, which will point to fPar when used in TPLEIADESDetProc
 TPLEIADESParam *TPLEIADESDisplay::fParDisplay = 0;
@@ -40,7 +40,7 @@ TPLEIADESDisplay::~TPLEIADESDisplay()
 }
 
 //------------------------------------------------------------------------
-// TPLEIADESDetDisplay is
+// TPLEIADESDetDisplay is the container holding detector wide histograms
 //------------------------------------------------------------------------
 
 TPLEIADESDetDisplay::TPLEIADESDetDisplay() :
@@ -136,7 +136,7 @@ void TPLEIADESDetDisplay::InitDisplay()
 }
 
 //------------------------------------------------------------------------
-// TPLEIADESChanDisplay is
+// TPLEIADESChanDisplay is the container holding channel specific histograms
 //------------------------------------------------------------------------
 
 TPLEIADESChanDisplay::TPLEIADESChanDisplay() :
@@ -212,6 +212,96 @@ void TPLEIADESChanDisplay::FillTraces()
         hTraceBLRChan->SetBinContent(i, fChannel->fDTraceBLR[i]);
         hTraceTRAPEZChan->SetBinContent(i, fChannel->fDTraceTRAPEZ[i]);
     }
+}
+
+//------------------------------------------------------------------------
+// TPLEIADESPhysDisplay is the container for holding Physics Processing histograms
+//------------------------------------------------------------------------
+
+TPLEIADESPhysDisplay::TPLEIADESPhysDisplay() :
+    TPLEIADESDisplay()
+{
+    TGo4Log::Info("TPLEIADESPhysDisplay: Create instance");
+}
+
+TPLEIADESPhysDisplay::~TPLEIADESPhysDisplay()
+{
+    TGo4Log::Info("TPLEIADESPhysDisplay: Delete instance");
+}
+
+void TPLEIADESPhysDisplay::InitDisplay(TPLEIADESDetEvent* fInEvent)
+{
+    SetMakeWithAutosave(kFALSE);    // recreate histograms
+
+    if(fParDisplay == 0)
+    {
+        TGo4Log::Warn("TPLEIADESChanDisplay::InitDisplay: fPar not set! Need parameter to build histograms.");
+        return;
+    }
+
+    TString modname, modhead;
+
+    for(const TString& dname : fParDisplay->fDetNameVec)
+    {
+        TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
+        if(theDetector->GetDetType() == "SiPad")
+        {
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Clipping/%s n side RTtC", dname.Data());
+            modhead.Form("Rise Time to Clipping - %s n side", dname.Data());
+            hRiseTimeNSides.push_back(MakeTH1('I', modname, modhead, 300, 0, 300));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Reentry/%s n side RTtR", dname.Data());
+            modhead.Form("Rise Time to Reentry - %s n side", dname.Data());
+            hReentryTimeNSides.push_back(MakeTH1('I', modname, modhead, 1000, 0, 1000));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Pulse Length/%s n side PL", dname.Data());
+            modhead.Form("Pulse Length - %s n side", dname.Data());
+            hPulseTimeNSides.push_back(MakeTH1('I', modname, modhead, 1e3, 2e3, 3e3));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Height/%s n side CH", dname.Data());
+            modhead.Form("Clip Height - %s n side", dname.Data());
+            hClipHeightNSides.push_back(MakeTH1('I', modname, modhead, 2e3, 1e3, 3e3));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/%s n side EH", dname.Data());
+            modhead.Form("End Height - %s n side", dname.Data());
+            hEndHeightNSides.push_back(MakeTH1('I', modname, modhead, 1e3, 0, 1e3));
+        }
+    }
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Clipping/Crystal Front RTtC");
+    modhead.Form("Rise Time to Clipping - Crys Front");
+    hRiseTimeCrysFr = MakeTH1('I', modname, modhead, 300, 0, 300);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Clipping/Crystal Back RTtC");
+    modhead.Form("Rise Time to Clipping - Crys Back");
+    hRiseTimeCrysBk = MakeTH1('I', modname, modhead, 300, 0, 300);
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Reentry/Crystal Front RTtR");
+    modhead.Form("Rise Time to Reentry - Crys Front");
+    hReentryTimeCrysFr = MakeTH1('I', modname, modhead, 1000, 0, 1000);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Reentry/Crystal Back RTtR");
+    modhead.Form("Rise Time to Reentry - Crys Back");
+    hReentryTimeCrysBk = MakeTH1('I', modname, modhead, 1000, 0, 1000);
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Pulse Length/Crystal Front PL");
+    modhead.Form("Pulse Length - Crys Front");
+    hPulseTimeCrysFr = MakeTH1('I', modname, modhead, 1e3, 2e3, 3e3);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Pulse Length/Crystal Back PL");
+    modhead.Form("Pulse Length - Crys Back");
+    hPulseTimeCrysBk = MakeTH1('I', modname, modhead, 1e3, 2e3, 3e3);
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Height/Crystal Front CH");
+    modhead.Form("Clip Height - Crys Front");
+    hClipHeightCrysFr = MakeTH1('I', modname, modhead, 2e3, 1e3, 3e3);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Height/Crystal Back CH");
+    modhead.Form("Clip Height - Crys Back");
+    hClipHeightCrysBk = MakeTH1('I', modname, modhead, 2e3, 1e3, 3e3);
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/Crystal Front EH");
+    modhead.Form("End Height - Crys Front");
+    hEndHeightCrysFr = MakeTH1('I', modname, modhead, 1e3, 0, 1e3);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/Crystal Back EH");
+    modhead.Form("End Height - Crys Back");
+    hEndHeightCrysBk = MakeTH1('I', modname, modhead, 1e3, 0, 1e3);
 }
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

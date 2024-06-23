@@ -137,9 +137,10 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
         /** this array keeps the unique names of configured detectors **/
         static std::vector<TString> fgConfigDetectors;
 
-        Bool_t fPhysTrigger;
-
         static TPLEIADESParam* fParDEv; // required to use fPar in DetEvent construction
+
+        Int_t fSequenceNumber;  // tracks MBS event number
+        Bool_t fPhysTrigger;    // tracks MBS physics trigger
 
     ClassDef(TPLEIADESDetEvent, 1)
 };

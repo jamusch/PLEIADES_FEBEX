@@ -84,10 +84,40 @@ class TPLEIADESChanDisplay : public TPLEIADESDisplay
         TH1* hTraceBLRChan;
         TH1* hTraceTRAPEZChan;
 
-    private:
-
-
     ClassDef(TPLEIADESChanDisplay, 1)
+};
+
+class TPLEIADESPhysDisplay : public TPLEIADESDisplay
+{
+    public:
+        TPLEIADESPhysDisplay();
+        virtual ~TPLEIADESPhysDisplay();
+
+        /** histogram functions **/
+        void InitDisplay(TPLEIADESDetEvent* fInEvent);     // initialises histograms
+
+        /** clipping statistics histograms **/
+        std::vector<TH1*> hRiseTimeNSides;
+        TH1* hRiseTimeCrysFr;
+        TH1* hRiseTimeCrysBk;
+
+        std::vector<TH1*> hReentryTimeNSides;
+        TH1* hReentryTimeCrysFr;
+        TH1* hReentryTimeCrysBk;
+
+        std::vector<TH1*> hPulseTimeNSides;
+        TH1* hPulseTimeCrysFr;
+        TH1* hPulseTimeCrysBk;
+
+        std::vector<TH1*> hClipHeightNSides;
+        TH1* hClipHeightCrysFr;
+        TH1* hClipHeightCrysBk;
+
+        std::vector<TH1*> hEndHeightNSides;
+        TH1* hEndHeightCrysFr;
+        TH1* hEndHeightCrysBk;
+
+    ClassDef(TPLEIADESPhysDisplay, 1)
 };
 
 #endif // TPLEIADESDISPLAY_H

@@ -39,6 +39,7 @@
 #pragma link C++ class TPLEIADESDisplay+;
 #pragma link C++ class TPLEIADESDetDisplay+;
 #pragma link C++ class TPLEIADESChanDisplay+;
+#pragma link C++ class TPLEIADESPhysDisplay+;
 
 #endif
 
