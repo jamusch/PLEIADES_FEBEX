@@ -70,7 +70,7 @@ void TPLEIADESDetProc::InitDisplays(TPLEIADESDetEvent* out)
             detDisplay->AddChanDisplay(chanDisplay);    // link channel to detector display
         }
 
-        fDetDisplays.push_back(detDisplay);
+        out->fDetDisplays.push_back(detDisplay);
     }
 }
 
@@ -106,7 +106,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
     for(const TString& dname : fPar->fDetNameVec)
     {
         TPLEIADESDetector *theDetector = fOutEvent->GetDetector(dname);
-        TPLEIADESDetDisplay *detDisplay = fDetDisplays[theDetector->getId()];
+        TPLEIADESDetDisplay *detDisplay = fOutEvent->fDetDisplays[theDetector->getId()];
         //std::cout << "Sanity check!: detector name: " << theDetector->GetDetName() << " matches det display: " << detDisplay->fDetector->GetDetName() << std::endl;
 
         if(fOutEvent->fPhysTrigger) { detDisplay->hDetHitPattern->Fill(-1,1); } // fill physics trigger bin in hit pattern

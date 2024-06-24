@@ -17,7 +17,6 @@
 
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESDetEvent.h"
-#include "TPLEIADESDetProc.h"
 
 #include <vector>
 
@@ -94,28 +93,18 @@ class TPLEIADESPhysDisplay : public TPLEIADESDisplay
         virtual ~TPLEIADESPhysDisplay();
 
         /** histogram functions **/
-        void InitDisplay(TPLEIADESDetEvent* fInEvent);     // initialises histograms
+        void InitClipStatsHists(TPLEIADESDetEvent* fInEvent);   // initialises clipping statistics histograms
+        void InitPHReconHists(TPLEIADESDetEvent* fInEvent);     // initialises pulse height reconstruction histograms
 
         /** clipping statistics histograms **/
-        std::vector<TH1*> hRiseTimeNSides;
-        TH1* hRiseTimeCrysFr;
-        TH1* hRiseTimeCrysBk;
+        std::vector<TH1*> hRiseTimeNSides;      TH1* hRiseTimeCrysFr;       TH1* hRiseTimeCrysBk;
+        std::vector<TH1*> hReentryTimeNSides;   TH1* hReentryTimeCrysFr;    TH1* hReentryTimeCrysBk;
+        std::vector<TH1*> hPulseTimeNSides;     TH1* hPulseTimeCrysFr;      TH1* hPulseTimeCrysBk;
+        std::vector<TH1*> hClipHeightNSides;    TH1* hClipHeightCrysFr;     TH1* hClipHeightCrysBk;
+        std::vector<TH1*> hEndHeightNSides;     TH1* hEndHeightCrysFr;      TH1* hEndHeightCrysBk;
 
-        std::vector<TH1*> hReentryTimeNSides;
-        TH1* hReentryTimeCrysFr;
-        TH1* hReentryTimeCrysBk;
-
-        std::vector<TH1*> hPulseTimeNSides;
-        TH1* hPulseTimeCrysFr;
-        TH1* hPulseTimeCrysBk;
-
-        std::vector<TH1*> hClipHeightNSides;
-        TH1* hClipHeightCrysFr;
-        TH1* hClipHeightCrysBk;
-
-        std::vector<TH1*> hEndHeightNSides;
-        TH1* hEndHeightCrysFr;
-        TH1* hEndHeightCrysBk;
+        /** pulse height recon histograms **/
+        std::vector<std::vector<TH1*>> hTOThreshNSides;     std::vector<TH1*> hTOThreshCrysFr;      std::vector<TH1*> hTOThreshCrysBk;
 
     ClassDef(TPLEIADESPhysDisplay, 1)
 };

@@ -822,19 +822,19 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     theChannel->fRFPGAHitTime = l_fpga_hitti[l_i][l_j][l_k];
 
                     #ifdef TPLEIADES_FILL_TRACES
-                    for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    for(int bin=1; bin<=h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
                         theChannel->fRTrace.push_back(l_value);
                     }
 
-                    for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    for(int bin=1; bin<=h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
                         theChannel->fRTraceBLR.push_back(l_value);
                     }
 
-                    for(int bin=1; bin<h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    for(int bin=1; bin<=h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trapez_f[l_i][l_j][l_k]->GetBinContent(bin);
                         theChannel->fRTraceTRAPEZ.push_back(l_value);
@@ -842,7 +842,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
                     theChannel->fRTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
 
-                    for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    for(int bin=1; bin<=h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
                         l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
                         theChannel->fRFPGATRAPEZ.push_back(l_value);

@@ -43,8 +43,6 @@ class TPLEIADESDetProc : public TGo4EventProcessor
         /** reference to output data*/
         TPLEIADESDetEvent* fOutEvent;  //!
 
-        std::vector<TPLEIADESDetDisplay*> fDetDisplays;
-
     ClassDef(TPLEIADESDetProc, 1)
 };
 

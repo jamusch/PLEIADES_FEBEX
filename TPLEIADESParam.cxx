@@ -25,14 +25,14 @@ using namespace std;
 
 TPLEIADESParam::TPLEIADESParam() : TGo4Parameter("Parameter")
 {
-    fSlowMotion = kFALSE;
+    fSlowMotion = kTRUE;
 
     InitBoardMapping();
 }
 
 TPLEIADESParam::TPLEIADESParam(const char* name) : TGo4Parameter(name)
 {
-    fSlowMotion = kFALSE;
+    fSlowMotion = kTRUE;
 
     InitBoardMapping();
 }

@@ -16,9 +16,10 @@
 #define TPLEIADESDETEVENT_H
 
 #include "TGo4CompositeEvent.h"
-#include "TPLEIADESRawEvent.h"  // used for trace ifdef
+#include "TPLEIADESRawEvent.h"
 
 class TPLEIADESParam;
+class TPLEIADESDetDisplay;
 
 //------------------------------------------------------------------------
 // TPLEIADESDetChan is a dependent class on TPLEIADESDetector. It represents an output channel on the detector.
@@ -138,6 +139,8 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
         static std::vector<TString> fgConfigDetectors;
 
         static TPLEIADESParam* fParDEv; // required to use fPar in DetEvent construction
+
+        std::vector<TPLEIADESDetDisplay*> fDetDisplays;
 
         Int_t fSequenceNumber;  // tracks MBS event number
         Bool_t fPhysTrigger;    // tracks MBS physics trigger

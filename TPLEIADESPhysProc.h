@@ -38,7 +38,9 @@ class TPLEIADESPhysProc : public TGo4EventProcessor
         void stdDSSDPosition(  TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // standard computation of normalised position
         void stdCrystalEnergy( TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills Crystal energies from scalars
 
-        void FillClippingStats();      // overwrites clipping statistics histograms
+        void FillClipStatsHists();      // fills clipping statistics histograms
+        void FillTOThreshHists();       // fills pulse height reconstruction histograms
+        void ExpFitPHRecon(); //std::vector<TF1 *> linFunc, std::vector<TF1 *> expFunc);           // implements a pulse shape fitting method
 
     private:
         /** parameter for runtime settings*/

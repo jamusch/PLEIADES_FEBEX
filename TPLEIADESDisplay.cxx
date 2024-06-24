@@ -13,7 +13,8 @@
 //------------------------------------------------------------------------
 
 #include "TPLEIADESDisplay.h"
-#include "TPLEIADESDetProc.h"
+#include "TPLEIADESRawEvent.h"
+#include "TPLEIADESPhysProc.h"
 
 #include "TGo4Log.h"
 
@@ -229,7 +230,7 @@ TPLEIADESPhysDisplay::~TPLEIADESPhysDisplay()
     TGo4Log::Info("TPLEIADESPhysDisplay: Delete instance");
 }
 
-void TPLEIADESPhysDisplay::InitDisplay(TPLEIADESDetEvent* fInEvent)
+void TPLEIADESPhysDisplay::InitClipStatsHists(TPLEIADESDetEvent* fInEvent)
 {
     SetMakeWithAutosave(kFALSE);    // recreate histograms
 
@@ -248,23 +249,23 @@ void TPLEIADESPhysDisplay::InitDisplay(TPLEIADESDetEvent* fInEvent)
         {
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Clipping/%s n side RTtC", dname.Data());
             modhead.Form("Rise Time to Clipping - %s n side", dname.Data());
-            hRiseTimeNSides.push_back(MakeTH1('I', modname, modhead, 300, 0, 300));
+            hRiseTimeNSides.push_back(MakeTH1('I', modname, modhead, 150, 0, 300));
 
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Reentry/%s n side RTtR", dname.Data());
             modhead.Form("Rise Time to Reentry - %s n side", dname.Data());
-            hReentryTimeNSides.push_back(MakeTH1('I', modname, modhead, 1000, 0, 1000));
+            hReentryTimeNSides.push_back(MakeTH1('I', modname, modhead, 5e2, 0, 1e3));
 
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Pulse Length/%s n side PL", dname.Data());
             modhead.Form("Pulse Length - %s n side", dname.Data());
-            hPulseTimeNSides.push_back(MakeTH1('I', modname, modhead, 1e3, 2e3, 3e3));
+            hPulseTimeNSides.push_back(MakeTH1('I', modname, modhead, 5e2, 2e3, 3e3));
 
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Height/%s n side CH", dname.Data());
             modhead.Form("Clip Height - %s n side", dname.Data());
-            hClipHeightNSides.push_back(MakeTH1('I', modname, modhead, 2e3, 1e3, 3e3));
+            hClipHeightNSides.push_back(MakeTH1('I', modname, modhead, 1e3, 1e3, 3e3));
 
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/%s n side EH", dname.Data());
             modhead.Form("End Height - %s n side", dname.Data());
-            hEndHeightNSides.push_back(MakeTH1('I', modname, modhead, 1e3, 0, 1e3));
+            hEndHeightNSides.push_back(MakeTH1('I', modname, modhead, 5e2, 0, 1e3));
         }
     }
 
@@ -302,6 +303,40 @@ void TPLEIADESPhysDisplay::InitDisplay(TPLEIADESDetEvent* fInEvent)
     modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/Crystal Back EH");
     modhead.Form("End Height - Crys Back");
     hEndHeightCrysBk = MakeTH1('I', modname, modhead, 1e3, 0, 1e3);
+}
+
+void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
+{
+    SetMakeWithAutosave(kFALSE);    // recreate histograms
+
+    if(fParDisplay == 0)
+    {
+        TGo4Log::Warn("TPLEIADESChanDisplay::InitDisplay: fPar not set! Need parameter to build histograms.");
+        return;
+    }
+
+    std::vector<TString> modname(3), modhead(3);
+
+    for(const TString& dname : fParDisplay->fDetNameVec)
+    {
+        TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
+        if(theDetector->GetDetType() == "SiPad")
+        {
+            modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 500", dname.Data());       modhead[0].Form("Time Over Threshold 500 - %s n side", dname.Data());
+            modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1000", dname.Data());      modhead[1].Form("Time Over Threshold 1000 - %s n side", dname.Data());
+            modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1500", dname.Data());      modhead[2].Form("Time Over Threshold 1500 - %s n side", dname.Data());
+            hTOThreshNSides.push_back( { MakeTH1('I', modname[0], modhead[0], 1e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 1e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 1e3, 0, 2e3) } );
+        }
+    }
+
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Front TOT 1000");     modhead[0].Form("Time Over Threshold 1000  - Crys Front");
+    modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Front TOT 1400");     modhead[1].Form("Time Over Threshold 1400 - Crys Front");
+    modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Front TOT 1800");     modhead[2].Form("Time Over Threshold 1800 - Crys Front");
+    hTOThreshCrysFr = { MakeTH1('I', modname[0], modhead[0], 2e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 2e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 2e3, 0, 2e3) };
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1000");      modhead[0].Form("Time Over Threshold 1000  - Crys Back");
+    modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1400");      modhead[1].Form("Time Over Threshold 1400 - Crys Back");
+    modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1800");      modhead[2].Form("Time Over Threshold 1800 - Crys Back");
+    hTOThreshCrysBk = { MakeTH1('I', modname[0], modhead[0], 2e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 2e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 2e3, 0, 2e3) };
 }
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------
