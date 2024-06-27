@@ -15,6 +15,7 @@
 #include "TGo4Analysis.h"
 #include "TGo4UserException.h"
 #include "TGo4Log.h"
+#include "TGo4Picture.h"
 
 #include "TPLEIADESPhysProc.h"
 #include "TPLEIADESDetEvent.h"
@@ -23,9 +24,10 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TF1.h"
-#include "TCanvas.h"
+#include "TMath.h"
 
 #include <vector>
+#include <numeric>
 
 //------------------------------------------------------------------------
 TPLEIADESPhysProc::TPLEIADESPhysProc() : TGo4EventProcessor("Proc")
@@ -140,16 +142,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     // Calculate statistics on signal clipping
     FillClipStatsHists();
     FillTOThreshHists();
-
-    /** TString modname;
-    std::vector<TF1*> linFunc, expFunc;
-    for(int i=0; i<8; ++i)
-    {
-        modname.Form("Lin Fit Func #%d", i);
-        linFunc.push_back(new TF1(modname.Data(), "[0]+[1]*x", 0, 3000));
-        expFunc.push_back(new TF1(modname.Data(), "[0]*exp([1]*x)", 0, 3000));
-    } **/
-    ExpFitPHRecon(); //linFunc, expFunc);
+    ExpIntegPHRecon();
 
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
@@ -304,6 +297,7 @@ void TPLEIADESPhysProc::FillClipStatsHists()
             fPhysDisplay->hPulseTimeNSides[nsideCnt]->Fill(2997-startRise);
             fPhysDisplay->hClipHeightNSides[nsideCnt]->Fill(traceBLR[satTime]);
             if(satTime != -999) { fPhysDisplay->hEndHeightNSides[nsideCnt]->Fill(traceBLR[2997]); }
+            fPhysDisplay->hClipLenVHghtNSides[nsideCnt]->Fill(satReentry-startRise, traceBLR[satTime]);
 
             nsideCnt += 1;
         }
@@ -324,6 +318,7 @@ void TPLEIADESPhysProc::FillClipStatsHists()
             fPhysDisplay->hPulseTimeCrysFr->Fill(2997-startRise);
             fPhysDisplay->hClipHeightCrysFr->Fill(traceBLR[satTime]);
             if(satTime != -999) { fPhysDisplay->hEndHeightCrysFr->Fill(traceBLR[2997]); }
+            fPhysDisplay->hClipLenVHghtCrysFr->Fill(satReentry-startRise, traceBLR[satTime]);
 
             // repeat for back side
             startRise = -99; satTime = -999;
@@ -344,6 +339,7 @@ void TPLEIADESPhysProc::FillClipStatsHists()
             fPhysDisplay->hPulseTimeCrysBk->Fill(2997-startRise);
             fPhysDisplay->hClipHeightCrysBk->Fill(traceBLR[satTime]);
             if(satTime != -999) { fPhysDisplay->hEndHeightCrysBk->Fill(traceBLR[2997]); }
+            fPhysDisplay->hClipLenVHghtCrysBk->Fill(satReentry-startRise, traceBLR[satTime]);
         }
     }
 }
@@ -453,10 +449,24 @@ void TPLEIADESPhysProc::FillTOThreshHists()
 //------------------------------------------------------------------------
 void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector<TF1*> expFunc)
 {
+    /********************************************************************************
+     * This function is currently unstable and crashes Go4 if a stop is requested.  *
+     * I suspect there is a memory leak somewhere. Proceed with caution!            *
+     ********************************************************************************/
+
     std::vector<Double_t> trace, traceBLR;
     Int_t   startRise;      Bool_t  startRec, satEv;
-    TString modname, modhead, chanName;
+    TString chanName;
     Int_t nsideCnt = 0;
+
+    TGo4Picture *fitPic = new TGo4Picture("PH Recon Fits", "PH Recon Fits", 3, 3);
+    std::vector<std::vector<short>> coords = { {0,0}, {0,1}, {0,2}, {1,0}, {1,1}, {1,2}, {2,0}, {2,1}, {2,2} };
+    TF1 *linFunc = new TF1("linf","[0]+[1]*x", 0, 3e3);         //gROOT->GetListOfFunctions()->Add(linFunc);
+    TF1 *expFunc = new TF1("expf","[0]*exp(-[1]*x)", 0, 3e3);   //gROOT->GetListOfFunctions()->Add(expFunc);
+
+    //TF1 intersection functions
+    auto finter = [linFunc, expFunc](double *x, double *par) -> Double_t { return TMath::Abs(linFunc->Eval(x[0]) - expFunc->Eval(x[0])); };
+    TF1 *fint = new TF1("fint", finter, 0, 3e3, 0);       //Form("abs(%s-%s)", linFunc->GetName(), expFunc->GetName())
 
     for(const TString& dname : fPar->fDetNameVec)
     {
@@ -477,26 +487,22 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
             if(satEv)
             {
                 chanName.Form("%s_nSide", theDetector->GetDetName().Data());
-                modname.Form("Event %d, Chan %s PHRecon Fit", fInEvent->fSequenceNumber, chanName.Data());
-                modhead.Form("Event %d, Chan %s PHRecon Fit", fInEvent->fSequenceNumber, chanName.Data());
-                TCanvas *can = new TCanvas(modname.Data(), modhead.Data());
-
                 TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
-                traceBLRHist->Draw();
+                TList* lis = traceBLRHist->GetListOfFunctions();
+                if(lis) lis->Delete(); // get rid of previous fit results
+                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
+                traceBLRHist->Fit(expFunc, "WCQF+", "", 800, 2995);
+                fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->AddH1(traceBLRHist);
+                fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->SetDrawOption("L");
+                AddPicture(fitPic);
 
-                traceBLRHist->Fit("pol1", "WCF+", "SAME", startRise, startRise+10);
-                //linFunc = traceBLRHist->GetFunction("pol1");
-                traceBLRHist->Fit("expo", "WCF+", "SAME", 1000, 2995);
-                //expFunc = traceBLRHist->GetFunction("expo");
-
-                //linFunc[nsideCnt]->Draw("SAME");    //expFunc[nsideCnt]->Draw("SAME");
-                //can->Update();
-                AddCanvas(can, "TPLEIADESPhysProc/Pulse Height Recon/Exp + Lin Fit");
+                Double_t xint = fint->GetMinimumX();
+                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
+                fPhysDisplay->hExpFitNSides[nsideCnt]->Fill(linFunc->Eval(xint));
             }
 
             nsideCnt += 1;
         }
-        /**
         else if(theDetector->GetDetType() == "Crystal")
         {
             trace = theDetector->GetChannel(0)->fDTrace;
@@ -505,38 +511,146 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
             for(uint i=0; i < (traceBLR.size()-5); ++i)
             {
                 if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
-                if(!satRec   && trace[i] == 16383) { satRec = kTRUE; satTime = i; }
-                if(!reentRec && trace[i] == 16383 && trace[i+1]<trace[i] && trace[i+2] != 16383 && trace[i+3] != 16383 && trace[i+4] != 16383 && trace[i+5] != 16383) { reentRec = kTRUE; satReentry = i; }
+                if(!satEv && trace[i] == 16383) { satEv = kTRUE; }
             }
-            //std::cout << "Crys Front: Signal start time was " << startRise << ", saturation time was " << satTime << ", reentry time was " << satReentry << std::endl;
-            fPhysDisplay->hRiseTimeCrysFr->Fill(satTime-startRise);
-            fPhysDisplay->hReentryTimeCrysFr->Fill(satReentry-startRise);
-            fPhysDisplay->hPulseTimeCrysFr->Fill(2997-startRise);
-            fPhysDisplay->hClipHeightCrysFr->Fill(traceBLR[satTime]);
-            if(satTime != -999) { fPhysDisplay->hEndHeightCrysFr->Fill(traceBLR[2997]); }
+
+            if(satEv)
+            {
+                chanName.Form("%s_CrysFrnt", theDetector->GetDetName().Data());
+                TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
+                TList* lis = traceBLRHist->GetListOfFunctions();
+                if(lis) lis->Delete(); // get rid of previous fit results
+                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
+                traceBLRHist->Fit(expFunc, "WCQF+", "", 1200, 2995);
+                fitPic->Pic(coords[7][0], coords[7][1])->AddH1(traceBLRHist);
+                fitPic->Pic(coords[7][0], coords[7][1])->SetDrawOption("L");
+                AddPicture(fitPic);
+
+                Double_t xint = fint->GetMinimumX();
+                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
+                fPhysDisplay->hExpFitCrysFr->Fill(linFunc->Eval(xint));
+            }
 
             // repeat for back side
-            startRise = -99; satTime = -999;
-            startRec = satRec = reentRec = kFALSE;
-
+            startRise = -99;    startRec = satEv = kFALSE;
             trace = theDetector->GetChannel(1)->fDTrace;
             traceBLR = theDetector->GetChannel(1)->fDTraceBLR;
 
             for(uint i=0; i < (traceBLR.size()-5); ++i)
             {
                 if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
-                if(!satRec   && trace[i] == 16383) { satRec = kTRUE; satTime = i; }
-                if(!reentRec && trace[i] == 16383 && trace[i+1]<trace[i] && trace[i+2] != 16383 && trace[i+3] != 16383 && trace[i+4] != 16383 && trace[i+5] != 16383) { reentRec = kTRUE; satReentry = i; }
+                if(!satEv && trace[i] == 16383) { satEv = kTRUE; }
             }
-            //std::cout << "Crys Back: Signal start time was " << startRise << ", saturation time was " << satTime << ", reentry time was " << satReentry << std::endl;
-            fPhysDisplay->hRiseTimeCrysBk->Fill(satTime-startRise);
-            fPhysDisplay->hReentryTimeCrysBk->Fill(satReentry-startRise);
-            fPhysDisplay->hPulseTimeCrysBk->Fill(2997-startRise);
-            fPhysDisplay->hClipHeightCrysBk->Fill(traceBLR[satTime]);
-            if(satTime != -999) { fPhysDisplay->hEndHeightCrysBk->Fill(traceBLR[2997]); }
+
+            if(satEv)
+            {
+                chanName.Form("%s_CrysBack", theDetector->GetDetName().Data());
+                TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
+                TList* lis = traceBLRHist->GetListOfFunctions();
+                if(lis) lis->Delete(); // get rid of previous fit results
+                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
+                traceBLRHist->Fit(expFunc, "WCQF+", "", 1500, 2995);
+                fitPic->Pic(coords[8][0], coords[8][1])->AddH1(traceBLRHist);
+                fitPic->Pic(coords[8][0], coords[8][1])->SetDrawOption("L");
+                AddPicture(fitPic);
+
+                Double_t xint = fint->GetMinimumX();
+                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
+                fPhysDisplay->hExpFitCrysBk->Fill(linFunc->Eval(xint));
+            }
         }
-        **/
     }
 }
+
+//------------------------------------------------------------------------
+void TPLEIADESPhysProc::ExpIntegPHRecon()
+{
+    std::vector<Double_t> trace, traceBLR;
+    Short_t startRise, consStart, indivStart, stopInt;
+    std::vector<Short_t> indivClipLen = { 250, 300, 300, 350, 400, 450, 500, 900 };
+    Bool_t  startRec, satTrace;
+    Int_t   nsideCnt = 0;
+    UInt_t  consInteg, indivInteg;
+
+    for(const TString& dname : fPar->fDetNameVec)
+    {
+        TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
+
+        if(theDetector->GetDetType() == "SiPad")
+        {
+            trace = theDetector->GetChannel(7)->fDTrace;
+            traceBLR = theDetector->GetChannel(7)->fDTraceBLR;
+            startRise = -9999;  startRec = satTrace = kFALSE;
+
+            for(uint i=0; i<traceBLR.size(); ++i)
+            {
+                if(!satTrace && trace[i] == 16383)  { satTrace = kTRUE; }
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+
+            }
+            if(satTrace)
+            {
+                consStart = startRise+900;  stopInt = startRise+2800;
+                indivStart = startRise + indivClipLen[nsideCnt];
+                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
+                indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
+                fPhysDisplay->hExpIntegNSides[nsideCnt][0]->Fill(consInteg);
+                fPhysDisplay->hExpIntegNSides[nsideCnt][1]->Fill(indivInteg);
+                //std::cout << "Event " << fInEvent->fSequenceNumber <<", detector " << theDetector->GetDetName() << ". Threshold 300: start " << startThresh[0] << ", stop " << stopThresh[0] << ". 1200: start " << startThresh[1] << ", stop " << stopThresh[1] << ". 2000: start " << startThresh[2] << ", stop " << stopThresh[2] << std::endl;
+            }
+
+            nsideCnt += 1;
+        }
+        else if(theDetector->GetDetType() == "Crystal")
+        {
+            trace = theDetector->GetChannel(0)->fDTrace;
+            traceBLR = theDetector->GetChannel(0)->fDTraceBLR;
+            startRise = -9999;  startRec = satTrace = kFALSE;
+
+            for(uint i=0; i<traceBLR.size(); ++i)
+            {
+                if(!satTrace && trace[i] == 16383)  { satTrace = kTRUE; }
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+
+            }
+            if(satTrace)
+            {
+                consStart = startRise+900;  stopInt = startRise+2800;
+                indivStart = startRise + indivClipLen[6];
+                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
+                indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
+                fPhysDisplay->hExpIntegCrysFr[0]->Fill(consInteg);
+                fPhysDisplay->hExpIntegCrysFr[1]->Fill(indivInteg);
+                //std::cout << "Event " << fInEvent->fSequenceNumber <<", detector " << theDetector->GetDetName() << ". Threshold 300: start " << startThresh[0] << ", stop " << stopThresh[0] << ". 1200: start " << startThresh[1] << ", stop " << stopThresh[1] << ". 2000: start " << startThresh[2] << ", stop " << stopThresh[2] << std::endl;
+            }
+
+            // repeat for back side
+            trace = theDetector->GetChannel(1)->fDTrace;
+            traceBLR = theDetector->GetChannel(1)->fDTraceBLR;
+            startRise = -9999;  startRec = satTrace = kFALSE;
+
+            for(uint i=0; i<traceBLR.size(); ++i)
+            {
+                if(!satTrace && trace[i] == 16383)  { satTrace = kTRUE; }
+                if(!startRec && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }
+
+            }
+            if(satTrace)
+            {
+                consStart = startRise+900;  stopInt = startRise+2800;
+                indivStart = startRise + indivClipLen[7];
+                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
+                indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
+                fPhysDisplay->hExpIntegCrysBk[0]->Fill(consInteg);
+                fPhysDisplay->hExpIntegCrysBk[1]->Fill(indivInteg);
+                //std::cout << "Event " << fInEvent->fSequenceNumber <<", detector " << theDetector->GetDetName() << ". Threshold 300: start " << startThresh[0] << ", stop " << stopThresh[0] << ". 1200: start " << startThresh[1] << ", stop " << stopThresh[1] << ". 2000: start " << startThresh[2] << ", stop " << stopThresh[2] << std::endl;
+            }
+        }
+    }
+}
+
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

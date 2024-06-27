@@ -262,6 +262,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             return kFALSE;
         }
     }
+    std::cout << "What is validiaty of event: " << isValid << "???" << std::endl;
 
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 

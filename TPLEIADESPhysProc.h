@@ -40,7 +40,8 @@ class TPLEIADESPhysProc : public TGo4EventProcessor
 
         void FillClipStatsHists();      // fills clipping statistics histograms
         void FillTOThreshHists();       // fills pulse height reconstruction histograms
-        void ExpFitPHRecon(); //std::vector<TF1 *> linFunc, std::vector<TF1 *> expFunc);           // implements a pulse shape fitting method
+        void ExpFitPHRecon();           // implements a pulse shape fitting method
+        void ExpIntegPHRecon();         // implements exponential integral method
 
     private:
         /** parameter for runtime settings*/

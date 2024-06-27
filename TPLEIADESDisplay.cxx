@@ -266,6 +266,10 @@ void TPLEIADESPhysDisplay::InitClipStatsHists(TPLEIADESDetEvent* fInEvent)
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/%s n side EH", dname.Data());
             modhead.Form("End Height - %s n side", dname.Data());
             hEndHeightNSides.push_back(MakeTH1('I', modname, modhead, 5e2, 0, 1e3));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Len v Hght/%s n side CLvH", dname.Data());
+            modhead.Form("Clip Length v Height Correlation - %s n side", dname.Data());
+            hClipLenVHghtNSides.push_back(MakeTH2('I', modname, modhead, 5e2, 0, 1e3, 1e3, 1e3, 3e3));
         }
     }
 
@@ -303,6 +307,13 @@ void TPLEIADESPhysDisplay::InitClipStatsHists(TPLEIADESDetEvent* fInEvent)
     modname.Form("TPLEIADESPhysProc/Clipping Statistics/End Height/Crystal Back EH");
     modhead.Form("End Height - Crys Back");
     hEndHeightCrysBk = MakeTH1('I', modname, modhead, 1e3, 0, 1e3);
+
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Len v Hght/Crystal Front CLvH");
+    modhead.Form("Clip Length v Height Correlation - Crys Frnt");
+    hClipLenVHghtCrysFr = MakeTH2('I', modname, modhead, 5e2, 0, 1e3, 1e3, 1e3, 3e3);
+    modname.Form("TPLEIADESPhysProc/Clipping Statistics/Clip Len v Hght/Crystal Back CLvH");
+    modhead.Form("Clip Length v Height Correlation - Crys Back");
+    hClipLenVHghtCrysBk = MakeTH2('I', modname, modhead, 5e2, 0, 1e3, 1e3, 1e3, 3e3);
 }
 
 void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
@@ -326,6 +337,14 @@ void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
             modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1000", dname.Data());      modhead[1].Form("Time Over Threshold 1000 - %s n side", dname.Data());
             modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1500", dname.Data());      modhead[2].Form("Time Over Threshold 1500 - %s n side", dname.Data());
             hTOThreshNSides.push_back( { MakeTH1('I', modname[0], modhead[0], 1e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 1e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 1e3, 0, 2e3) } );
+            /**
+            modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/%s n side EF", dname.Data());
+            modhead[0].Form("Exp Fit - %s n side", dname.Data());
+            hExpFitNSides.push_back(MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3));
+            **/
+            modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/%s n side Conservative Integ", dname.Data());    modhead[0].Form("Conservative Exp Integral - %s n side", dname.Data());
+            modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/%s n side Individual Integ", dname.Data());      modhead[1].Form("Individual Exp Integral - %s n side", dname.Data());
+            hExpIntegNSides.push_back( { MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e6), MakeTH1('I', modname[1], modhead[1], 5e3, 0, 5e6) } );
         }
     }
 
@@ -337,6 +356,20 @@ void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
     modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1400");      modhead[1].Form("Time Over Threshold 1400 - Crys Back");
     modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1800");      modhead[2].Form("Time Over Threshold 1800 - Crys Back");
     hTOThreshCrysBk = { MakeTH1('I', modname[0], modhead[0], 2e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 2e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 2e3, 0, 2e3) };
+    /**
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/Crystal Front EF");
+    modhead[0].Form("Exp Fit - Crys Front");
+    hExpFitCrysFr = MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3);
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/Crystal Back EF");
+    modhead[0].Form("Exp Fit - Crys Back");
+    hExpFitCrysBk = MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3);
+    **/
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Front Conservative Integ");  modhead[0].Form("Conservative Exp Integral - Crys Front");
+    modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Front Individual Integ");    modhead[1].Form("Individual Exp Integral - Crys Front");
+    hExpIntegCrysFr = { MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e6), MakeTH1('I', modname[1], modhead[1], 5e3, 0, 5e6) };
+    modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Back Conservative Integ");   modhead[0].Form("Conservative Exp Integral - Crys Back");
+    modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Back Individual Integ");     modhead[1].Form("Individual Exp Integral - Crys Front");
+    hExpIntegCrysBk = { MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e6), MakeTH1('I', modname[1], modhead[1], 5e3, 0, 5e6) };
 }
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

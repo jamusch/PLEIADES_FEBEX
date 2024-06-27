@@ -44,7 +44,8 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     factory1->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");   // object name, class name
     factory1->DefOutputEvent("PLEIADESRawEvent","TPLEIADESRawEvent");    // object name, class name
 
-    TGo4EventSourceParameter *sourcepar = new TGo4MbsFileParameter(GetDefaultTestFileName());
+    Text_t lmdfile[512]= "/home/litv-exp/2022_beavertail/lmd/run0010.lmd";
+    TGo4EventSourceParameter *sourcepar = new TGo4MbsFileParameter(lmdfile);
 
     TString parname = TString::Format("%sOutput", argv[0]);
     TGo4FileStoreParameter* storepar = new TGo4FileStoreParameter(parname.Data());
@@ -63,7 +64,7 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     factory2->DefEventProcessor("PLEIADESDetProc","TPLEIADESDetProc");  // object name, class name
     factory2->DefOutputEvent("PLEIADESDetEvent","TPLEIADESDetEvent");   // object name, class name
 
-    TGo4AnalysisStep *step2 = new TGo4AnalysisStep("Det Event Building", factory2, nullptr, nullptr);
+    TGo4AnalysisStep *step2 = new TGo4AnalysisStep("Det Event Building", factory2, 0, 0);
     step2->SetSourceEnabled(kFALSE);
     step2->SetStoreEnabled(kFALSE);
     step2->SetProcessEnabled(kTRUE);
@@ -76,7 +77,7 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     factory3->DefEventProcessor("PLEIADESPhysProc","TPLEIADESPhysProc");  // object name, class name
     factory3->DefOutputEvent("PLEIADESPhysEvent","TPLEIADESPhysEvent");   // object name, class name
 
-    TGo4AnalysisStep *step3 = new TGo4AnalysisStep("Physics Processing", factory3, nullptr, nullptr);
+    TGo4AnalysisStep *step3 = new TGo4AnalysisStep("Physics Processing", factory3, 0, 0);
     step2->SetSourceEnabled(kFALSE);
     step2->SetStoreEnabled(kFALSE);
     step2->SetProcessEnabled(kTRUE);

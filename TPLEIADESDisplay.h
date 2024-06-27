@@ -102,9 +102,12 @@ class TPLEIADESPhysDisplay : public TPLEIADESDisplay
         std::vector<TH1*> hPulseTimeNSides;     TH1* hPulseTimeCrysFr;      TH1* hPulseTimeCrysBk;
         std::vector<TH1*> hClipHeightNSides;    TH1* hClipHeightCrysFr;     TH1* hClipHeightCrysBk;
         std::vector<TH1*> hEndHeightNSides;     TH1* hEndHeightCrysFr;      TH1* hEndHeightCrysBk;
+        std::vector<TH2*> hClipLenVHghtNSides;  TH2* hClipLenVHghtCrysFr;   TH2* hClipLenVHghtCrysBk;
 
         /** pulse height recon histograms **/
         std::vector<std::vector<TH1*>> hTOThreshNSides;     std::vector<TH1*> hTOThreshCrysFr;      std::vector<TH1*> hTOThreshCrysBk;
+        std::vector<TH1*> hExpFitNSides;     TH1* hExpFitCrysFr;      TH1* hExpFitCrysBk;
+        std::vector<std::vector<TH1*>> hExpIntegNSides;     std::vector<TH1*> hExpIntegCrysFr;      std::vector<TH1*> hExpIntegCrysBk;
 
     ClassDef(TPLEIADESPhysDisplay, 1)
 };
