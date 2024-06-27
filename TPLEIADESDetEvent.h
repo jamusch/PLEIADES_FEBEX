@@ -140,7 +140,7 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
 
         static TPLEIADESParam* fParDEv; // required to use fPar in DetEvent construction
 
-        std::vector<TPLEIADESDetDisplay*> fDetDisplays;
+        std::vector<TPLEIADESDetDisplay*> fDetDisplays; //! JAM 27-06-2024 avoid that this is streamed into the TTree...
 
         Int_t fSequenceNumber;  // tracks MBS event number
         Bool_t fPhysTrigger;    // tracks MBS physics trigger
