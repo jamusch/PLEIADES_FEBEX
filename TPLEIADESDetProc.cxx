@@ -134,23 +134,27 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);          // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = pBoard->GetChannel(rawChPos);
 
+                // load hit multiplicity information
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1); }
+                theDetChan->fDPolarity = theRawChan->fRPolarity;
                 theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j); }
+                if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(j, theDetChan->fDTrapezEnergy); }
+
+                // load energy information
                 theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
                 theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
                 theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+
+                // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
                 theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
                 theDetChan->fDTrace           = theRawChan->fRTrace;
                 theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
                 theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
-                #endif
-
-                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
-                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
                 chanDisplay->FillTraces();
-
-                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
-                if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(j, theDetChan->fDTrapezEnergy, 1); }
+                #endif
             }
 
             // load the data for the n-side
@@ -163,22 +167,27 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
             TPLEIADESFebChannel *theRawChan = nBoard->GetChannel(rawChPos);
 
-            theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-            theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
-            theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+            // load hit multiplicity information
+            if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1); }
+            theDetChan->fDPolarity = theRawChan->fRPolarity;
+            theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
+            chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
+            if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(7); }
+            if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(7, theDetChan->fDTrapezEnergy); }
+
+            // load energy information
+            theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
+            theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
+            theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+
+            // load trace information
             #ifdef TPLEIADES_FILL_TRACES
-            theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
-            theDetChan->fDTrace          = theRawChan->fRTrace;
-            theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
-            theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
-            #endif
-
-            if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
-            chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
+            theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+            theDetChan->fDTrace           = theRawChan->fRTrace;
+            theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
+            theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
             chanDisplay->FillTraces();
-
-            if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(7,1); }
-            if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(7, theDetChan->fDTrapezEnergy, 1); }
+            #endif
         }
         else if((theDetector->GetDetType()) == "DSSD")
         {
@@ -201,21 +210,26 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = dBoard->GetChannel(rawChPos);
 
-                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+                // load hit multiplicity information
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1); }
+                theDetChan->fDPolarity = theRawChan->fRPolarity;
+                theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j); }
+
+                // load energy information
+                theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
+                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+
+                // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
-                theDetChan->fDTrace          = theRawChan->fRTrace;
-                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
-                #endif
-
-                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
-                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity, 1);
+                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace           = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
                 chanDisplay->FillTraces();
-
-                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
+                #endif
             }
         }
         else if((theDetector->GetDetType()) == "Crystal")
@@ -239,21 +253,26 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = cBoard->GetChannel(rawChPos);
 
-                theDetChan->fDFPGAEnergy     = theRawChan->fRFPGAEnergy;
-                theDetChan->fDFPGAHitTime    = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ     = theRawChan->fRFPGATRAPEZ;
+                // load hit multiplicity information
+                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1); }
+                theDetChan->fDPolarity = theRawChan->fRPolarity;
+                theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
+                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
+                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j); }
+
+                // load energy information
+                theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
+                theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
+                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+
+                // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy   = theRawChan->fRTrapezEnergy;
-                theDetChan->fDTrace          = theRawChan->fRTrace;
-                theDetChan->fDTraceBLR       = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ    = theRawChan->fRTraceTRAPEZ;
-                #endif
-
-                if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1,1); }
-                chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity,1);
+                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+                theDetChan->fDTrace           = theRawChan->fRTrace;
+                theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
+                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
                 chanDisplay->FillTraces();
-
-                if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j,1); }
+                #endif
             }
         }
         else
@@ -262,8 +281,8 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             return kFALSE;
         }
     }
-    std::cout << "What is validiaty of event: " << isValid << "???" << std::endl;
 
+    //std::cout << "What is validiaty of event: " << isValid << "???" << std::endl;
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
     return isValid;

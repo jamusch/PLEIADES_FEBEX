@@ -32,11 +32,13 @@ class TPLEIADESPhysProc : public TGo4EventProcessor
         virtual ~TPLEIADESPhysProc() ;
 
         Bool_t BuildEvent(TGo4EventElement* target); // event processing function
-        void pStripSelect(     TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // constructs p-side energy from strips
+        std::vector<Short_t> pStripSelect(TPLEIADESDetector* theDetector);   // provides vector of p-side active strips
         void stdSinSideEnergy( TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills n-side energy from scalars
         void stdDSSDEnergy(    TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills DSSD energy from scalars
         void stdDSSDPosition(  TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // standard computation of normalised position
         void stdCrystalEnergy( TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics);   // fills Crystal energies from scalars
+
+        void PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLEIADESDetPhysics *detPhysics);
 
         void FillClipStatsHists();      // fills clipping statistics histograms
         void FillTOThreshHists();       // fills pulse height reconstruction histograms

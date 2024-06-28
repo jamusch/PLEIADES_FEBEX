@@ -42,10 +42,9 @@ TPLEIADESDetPhysics::~TPLEIADESDetPhysics()
 void TPLEIADESDetPhysics::Clear(Option_t *opt)
 {
     // all members should be cleared, i.e. assigned to a "not filled" value
-    fpEnergy  = -99;
-    fnEnergy  = -99;
-    fNormPosX = -99;
-    fNormPosY = -99;
+    fpFPGAEnergy = fpTrapezEnergy = fpTraceIntEnergy = fpExpFitIntEnergy = -99;
+    fnFPGAEnergy = fnTrapezEnergy = fnTraceIntEnergy = fnExpFitIntEnergy = -99;
+    fNormPosX = fNormPosY = -99;
 }
 
 

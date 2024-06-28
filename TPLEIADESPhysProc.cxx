@@ -86,13 +86,16 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     // Process all detectors to calculate final energy values.
     try
     {
+        Bool_t firstEmptyError;
+        firstEmptyError = kTRUE;
+
         // loop over detectors to fill physics properties
         for(const TString& dname : fPar->fDetNameVec)
         {
             TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
             TPLEIADESDetPhysics *detPhysics = fOutEvent->GetDetector(dname);
 
-            if((theDetector->GetDetType()) == "SiPad")  // select SiPads for pStrip search
+            if((theDetector->GetDetType()) == "SiPad")   // select SiPads for pStrip search
             {
                 if((theDetector->getNElements()) != 8)
                 {
@@ -101,10 +104,42 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 // search for active p-strip for p-side energy
-                pStripSelect("FPGA", theDetector, detPhysics);
+                std::vector<Short_t> hitLoc = pStripSelect(theDetector);
+                if(hitLoc.size() == 0)   // no hits on p strips
+                {
+                    if(firstEmptyError) { TGo4Log::Info("TPLEIADESPhysProc - no hits were found by pStripSelect. Pulser event below FPGA threshold?"); firstEmptyError = kFALSE; }
+                    continue;
+                }
+                else if(hitLoc.back() == -99)   // unphysical event, skipping
+                {
+                    TGo4Log::Warn("TPLEIADESPhysProc - pileup event or multiple strips hit but not neighbours, skipping!");
+                    continue;
+                }
+                else if(hitLoc.size() == 1)   // single strip event, easy
+                {
+                    detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy;
+                    #ifdef TPLEIADES_FILL_TRACES
+                    detPhysics->fpTrapezEnergy = theDetector->GetChannel(hitLoc[0])->fDTrapezEnergy;
+                    PulseShapeIntegration(theDetector->GetChannel(hitLoc[0]), detPhysics);
+                    #endif
+                }
+                else if(hitLoc.size() == 2)   // interstrip event, add energies
+                {
+                    detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy + theDetector->GetChannel(hitLoc[1])->fDFPGAEnergy;
+                    detPhysics->fpTrapezEnergy = theDetector->GetChannel(hitLoc[0])->fDTrapezEnergy + theDetector->GetChannel(hitLoc[1])->fDTrapezEnergy;
+                    #ifdef TPLEIADES_FILL_TRACES
+                    TGo4Log::Info("TPLEIADESPhysProc - pStripSelect detected interstrip event, energies summed, pulse shape integrals skipped.");
+                    #endif
+                }
+                else { TGo4Log::Warn("TPLEIADESPhysProc - case not caught by pStripSelect, what the hell is this?"); }
 
                 //fill n-side energy
-                stdSinSideEnergy("FPGA", theDetector, detPhysics);
+                // NB: I do not fill FPGA and Trapez energies for Si pad n-sides as they were clipped.
+                //detPhysics->fpFPGAEnergy = theDetector->GetChannel(7)->fDFPGAEnergy;
+                //detPhysics->fpTrapezEnergy = theDetector->GetChannel(7)->fDTrapezEnergy;
+                #ifdef TPLEIADES_FILL_TRACES
+                PulseShapeIntegration(theDetector->GetChannel(7), detPhysics);
+                #endif
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
             {
@@ -160,46 +195,80 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 //------------------------------------------------------------------------
 // standard energy uses FPGA or TRAPEZ energy directly from TPLEIADESDetEvent, ie no pulse shape analysis.
 // p-sides are handled by selection of active p-strip for SiPads and summation of L/R for DSSD
-void TPLEIADESPhysProc::pStripSelect(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)
-// method is either FPGA or TRAPEZ
+std::vector<Short_t> TPLEIADESPhysProc::pStripSelect(TPLEIADESDetector* theDetector)
 {
     if(!theDetector) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no det event handed to pStripSelect!"); }
-    else if(!detPhysics) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no phys event handed to pStripSelect!"); }
 
-    Short_t hitLoc = -99;      // location of first hit, initialised to unphysical -99
-    Int_t stripEnergy = -99;  // strip energy placeholder
-    Double_t totEnergy = 0;    // value for total energy deposited in p-side
+    std::vector<Short_t> hitLoc;
 
     for(int j=0; j<7; ++j)  // loop over p-strips
     {
         TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
 
-        if(method == "FPGA") { stripEnergy = theDetChan->fDFPGAEnergy; }
-        else { throw std::runtime_error("TPLEIADESPhysProc::pStripSelect only FPGA method currently implemented"); }
-
-        if(stripEnergy == -99) { throw std::runtime_error("TPLEIADESPhysProc::pStripSelect NEVER COME HERE - strip energy wasn't assigned to fDFPGAEnergy"); }
-        else if(stripEnergy != 0)   // hit detected
+        if(theDetChan->fDHitMultiplicity > 1)   // multiple hits rejected
         {
-            if(hitLoc == -99)   // if first hit
+            hitLoc.push_back(-99);
+            break;
+        }
+        else if(theDetChan->fDHitMultiplicity == 1)   // single hit detected
+        {
+            if(hitLoc.size() == 0)   // if first hit
             {
-                hitLoc = j;
-                totEnergy = stripEnergy;
+                hitLoc.push_back(j);
             }
-            else if(j == hitLoc+1)  // is hit a neighbour of first hit?
+            else if(hitLoc.size() != 0 && j == hitLoc[0]+1)  // is hit a neighbour of first hit? then is an interstrip
             {
-                totEnergy += stripEnergy;
-                //TGo4Log::Info("TPLEIADESPhysProc::pStripSelect interstrip event, composite energy used.");
+                hitLoc.push_back(j);
             }
-            else
+            else    // multiple hit but not neighbours, can't be interstrip so set to unphysical
             {
-                //TGo4Log::Warn("TPLEIADESPhysProc::pStripSelect multiple strips hit but not neighbours, skipping!");
-                totEnergy = -99;
+                hitLoc.push_back(-99);
             }
         }
     }
 
-    //if(hitLoc == -99) { TGo4Log::Info("TPLEIADESPhysProc::pStripSelect no hit found on p-strip. Pulser event?"); }
-    detPhysics->fpEnergy = totEnergy;   // assign selected p-strip energy to detector
+    return hitLoc;
+}
+
+//------------------------------------------------------------------------
+void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLEIADESDetPhysics *detPhysics)
+{
+    std::vector<Double_t> trace, traceBLR;
+    trace = theDetChan->fDTrace;
+    traceBLR = theDetChan->fDTraceBLR;
+    if(trace.size() == 0) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace integral requested but trace is empty, skipping!"); return; }
+    else if(trace.size() != 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace is not 3000 bins, skipping!"); return; }
+
+    Short_t startRise, startInt, stopInt;
+    Bool_t  startRec, satTrace;
+    startRise = -9999;  startRec = satTrace = kFALSE;
+
+    for(uint i=0; i<traceBLR.size(); ++i)
+    {
+        if(!satTrace && trace[i] == 16383)  { satTrace = kTRUE; }
+        if(!startRec && theDetChan->fDPolarity == 0 && trace[i+1]-trace[i] > 300) { startRec = kTRUE; startRise = i; }          // positive leading edge
+        else if(!startRec && theDetChan->fDPolarity == 1 && trace[i+1]-trace[i] < -300) { startRec = kTRUE; startRise = i; }     // negative leading edge
+
+    }
+    // msg to check leading edge value //TGo4Log::Info("TPLEIADESPhysProc::PulseShapeIntegration - Event num %d leading edge was %d", fInEvent->fSequenceNumber, startRise);
+
+    // set start/stop for integrals
+    if(startRise < 0) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - startRise is negative so leading edge not found, skipping!"); return; }
+    startInt = startRise+900;  stopInt = startRise+2800;
+    if(stopInt > 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - stopInt > trace length, skipping!"); return; }
+
+    Double_t  sumIntegral, fitIntegral;
+    // evaluate summing integral
+    sumIntegral = std::accumulate(traceBLR.begin()+startInt, traceBLR.begin()+stopInt, 0);
+
+    // evaluate fitting integral
+    TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetChan->GetDetId()]->GetChanDisplay(theDetChan->GetName())->hTraceBLRChan;
+    traceBLRHist->Fit("expo", "WCQF0+", "", startInt, stopInt);
+    fitIntegral = traceBLRHist->GetFunction("expo")->Integral(startInt, stopInt);
+
+    // assign integrals to event
+    detPhysics->fpTraceIntEnergy = sumIntegral;
+    detPhysics->fpExpFitIntEnergy = fitIntegral;
 }
 
 //------------------------------------------------------------------------
@@ -209,7 +278,7 @@ void TPLEIADESPhysProc::stdSinSideEnergy(TString method, TPLEIADESDetector* theD
     else if(!detPhysics) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no phys event handed to pStripSelect!"); }
 
     TPLEIADESDetChan *nsideDetChan = theDetector->GetChannel(7);
-    if(method == "FPGA") { detPhysics->fnEnergy = nsideDetChan->fDFPGAEnergy; }
+    if(method == "FPGA") { detPhysics->fnFPGAEnergy = nsideDetChan->fDFPGAEnergy; }
 }
 
 //------------------------------------------------------------------------
@@ -235,8 +304,8 @@ void TPLEIADESPhysProc::stdDSSDEnergy(TString method, TPLEIADESDetector* theDete
     }
 
     //fill energies
-    detPhysics->fpEnergy = pEnergy;
-    detPhysics->fnEnergy = nEnergy;
+    detPhysics->fpFPGAEnergy = pEnergy;
+    detPhysics->fnFPGAEnergy = nEnergy;
 }
 
 //------------------------------------------------------------------------
@@ -259,8 +328,8 @@ void TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* theD
         if(chanEnergy == -99) { throw std::runtime_error("TPLEIADESPhysProc::stdEnergy NEVER COME HERE - strip energy wasn't assigned to fDFPGAEnergy"); }
         else
         {
-            if(j==0) { detPhysics->fpEnergy = chanEnergy; }
-            else if(j==1) { detPhysics->fnEnergy = chanEnergy; }
+            if(j==0) { detPhysics->fpFPGAEnergy = chanEnergy; }
+            else if(j==1) { detPhysics->fnFPGAEnergy = chanEnergy; }
         }
     }
 }

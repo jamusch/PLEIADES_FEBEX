@@ -150,14 +150,15 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     UInt_t  l_hit_time_sign;    // bit for polarity of hit time relative to trigger
      Int_t  l_hit_time;         // magnitude of hit time
     UInt_t  l_hit_cha_id2;      // hit channel for FPGA energy
-    UInt_t  l_fpga_energy_sign; // bit for polarity of FPGA energy
+    //UInt_t  l_fpga_energy_sign; // bit for polarity of FPGA energy
      Int_t  l_fpga_energy;      // magnitude of FPGA energy
 
+    UInt_t  l_pol_array      [MAX_SFP][MAX_SLAVE][N_CHA];   // array of polarities
     UInt_t  l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if TRAPEZ energy found
     UInt_t  l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if FPGA energy found
-    UInt_t  l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of TRAPEZ energy
-    UInt_t  l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of FPGA energy
-    UInt_t  l_fpga_hitti     [MAX_SFP][MAX_SLAVE][N_CHA];   // array of hit time values from FPGA
+    Int_t   l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of TRAPEZ energy
+    Int_t   l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of FPGA energy
+    Int_t   l_fpga_hitti     [MAX_SFP][MAX_SLAVE][N_CHA];   // array of hit time values from FPGA
 
     UInt_t  l_dat_fir;          // word for first half of trace
     UInt_t  l_dat_sec;          // word for second half of trace
@@ -179,7 +180,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     Int_t   l_A1, l_A2;             // TRAPEZ filter counters
     UInt_t  l_gap = TRAPEZ_N_GAP;   // TRAPEZ gap size
     UInt_t  l_win = TRAPEZ_N_AVG;   // TRAPEZ window size
-    #endif // TRAPEZ
+    #endif // TRAPEZl_pol
 
     #ifdef MWD
     UInt_t  l_mwd_wind = MWD_WIND;
@@ -404,6 +405,8 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
             // check polarity of FEBEX card
             l_pol = (l_pola[l_sfp_id] >> l_feb_id) & 0x1;
+            l_pol_array[l_sfp_id][l_feb_id][l_cha_id] = l_pol;   // save polarity for later filling
+
 
             //------------------------------------------------------------------------
             // reads out special channel 0xff for E,t from FPGA
@@ -483,12 +486,9 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
                         if(l_only_one_hit_in_cha == 1)	// again, only read out if single hit
                         {
-                            l_fpga_energy_sign = (l_dat & 0x800000) >> 23;
-                            l_fpga_energy      =  l_dat & 0x7fffff;      // positiv
-                            if(l_fpga_energy_sign == 1)                // negative sign
-                            {
-                                l_fpga_energy = l_fpga_energy * (-1);     // negative
-                            }
+                            //l_fpga_energy_sign = (l_dat & 0x800000) >> 23;
+                            l_fpga_energy      =  l_dat & 0x7fffff;
+                            //if(l_fpga_energy_sign == 1) { l_fpga_energy = l_fpga_energy * (-1); } //Nik here sets negative pulses to negative energies to guide the eye. I've disabled this
                             //printf ("cha: %d, hit fpga energy: %d \n", l_hit_cha_id2,  l_fpga_energy);
                             h_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_fpga_energy);	// fill temp energy hist for scope
                             l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;		// fill if FPGA energy found
@@ -675,21 +675,21 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     #endif // TRAPEZ
 
                     // find peaks and valleys in trace and fill histogram
-                    h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
-                    h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
+                    h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
+                    h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum());
 
                     #ifdef TRAPEZ       // determine energy and fill histograms from TRAPEZ filter
                     if(l_pol == 1) // negative signals
                     {
-                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
+                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1));
                         l_trapez_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
-                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ();
+                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);
                     }
                     if(l_pol == 0) // positive signals
                     {
-                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
+                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
                         l_trapez_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
-                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ();
+                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();
                     }
                     #endif // TRAPEZ
 
@@ -817,6 +817,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 {
                     TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
 
+                    theChannel->fRPolarity = l_pol_array[l_i][l_j][l_k];
                     theChannel->fRHitMultiplicity = l_ch_hitpat[l_i][l_j][l_k];
                     theChannel->fRFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
                     theChannel->fRFPGAHitTime = l_fpga_hitti[l_i][l_j][l_k];

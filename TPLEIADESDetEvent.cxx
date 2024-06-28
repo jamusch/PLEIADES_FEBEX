@@ -95,6 +95,12 @@ TPLEIADESDetChan* TPLEIADESDetector::GetChannel(TString chname)
     return 0;
 }
 
+TPLEIADESDetChan* TPLEIADESDetector::GetChannel(Short_t id)
+{
+    if(id<0 || id>=getNElements()) { TGo4Log::Error("TPLEIADESDetector::GetChannel - id outside of NElements."); return 0; }
+    return (TPLEIADESDetChan*) getEventElement(id);
+}
+
 void TPLEIADESDetector::SetupDetector()    // builds detector channels based on type of detector
 {
     if(fParDet == 0)

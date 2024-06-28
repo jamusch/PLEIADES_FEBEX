@@ -56,9 +56,10 @@ class TPLEIADESDetChan : public TGo4EventElement
         TString GetChanType() { return fChanType; }
 
         /** FEBEX special channel properties **/
+        UInt_t fDPolarity;
         UInt_t fDHitMultiplicity;
-        UInt_t fDFPGAEnergy;
-        UInt_t fDFPGAHitTime;
+        Int_t  fDFPGAEnergy;
+        Int_t  fDFPGAHitTime;
         std::vector<Double_t> fDFPGATRAPEZ;
 
         /** FEBEX trace properties **/
@@ -103,7 +104,7 @@ class TPLEIADESDetector : public TGo4CompositeEvent
 
         /** get channel objects created with board **/
         TPLEIADESDetChan* GetChannel(TString chname);
-        TPLEIADESDetChan* GetChannel(UInt_t id) { return (TPLEIADESDetChan*) getEventElement(id); }
+        TPLEIADESDetChan* GetChannel(Short_t id);
 
         /** Method called by the framework to clear the event element. **/
         void Clear(Option_t *opt = "");
