@@ -24,7 +24,7 @@ class TPLEIADESParam : public TGo4Parameter
 {
     public:
         TPLEIADESParam();
-        TPLEIADESParam(const char* name=0);
+        TPLEIADESParam(const char* name);
         virtual ~TPLEIADESParam();
 
         virtual Bool_t UpdateFrom(TGo4Parameter *);

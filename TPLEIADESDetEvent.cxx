@@ -35,7 +35,7 @@ TPLEIADESDetChan::TPLEIADESDetChan(const char* name, Short_t id) :
 
 TPLEIADESDetChan::~TPLEIADESDetChan()
 {
-    TGo4Log::Info("TPLEIADESDetChan: Delete instance");
+    TGo4Log::Info("TPLEIADESDetChan: Delete instance %s", GetName());
 }
 
 void TPLEIADESDetChan::Clear(Option_t *opt)
@@ -77,7 +77,7 @@ TPLEIADESDetector::TPLEIADESDetector(const char* name, Short_t id) :
 
 TPLEIADESDetector::~TPLEIADESDetector()
 {
-    TGo4Log::Info("TPLEIADESDetector: Delete instance");
+    TGo4Log::Info("TPLEIADESDetector: Delete instance %s",GetName());
 }
 
 TPLEIADESDetChan* TPLEIADESDetector::GetChannel(TString chname)
@@ -188,13 +188,13 @@ void TPLEIADESDetector::Clear(Option_t *opt)
 TPLEIADESParam *TPLEIADESDetEvent::fParDEv = 0;
 
 TPLEIADESDetEvent::TPLEIADESDetEvent() :
-    TGo4CompositeEvent(), fSequenceNumber(0)
+    TGo4CompositeEvent(), fSequenceNumber(0),fPhysTrigger(kFALSE)
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance");
 }
 
 TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
-    TGo4CompositeEvent(name, name, id), fSequenceNumber(0)
+    TGo4CompositeEvent(name, name, id), fSequenceNumber(0),fPhysTrigger(kFALSE)
 {
     TGo4Log::Info("TPLEIADESDetEvent: Create instance %s with composite ID %d", name, id);
 
@@ -203,7 +203,7 @@ TPLEIADESDetEvent::TPLEIADESDetEvent(const char* name, Short_t id) :
 
 TPLEIADESDetEvent::~TPLEIADESDetEvent()
 {
-    TGo4Log::Info("TPLEIADESDetEvent: Delete instance");
+    TGo4Log::Info("TPLEIADESDetEvent: Delete instance %s",GetName());
 }
 
 void TPLEIADESDetEvent::BuildDetectors()      //construct detectors based on fDetNameVec list

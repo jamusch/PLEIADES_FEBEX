@@ -34,6 +34,9 @@ void set_PLEIADESParam()
     //------------------------------------------------------------------------
     // code for channel map is a 12 bit word: bit 9,8 are for SFP, bit 7-4 are for Board slot, bit 3-0 are for channel position.
     // for fpSideMap, beacuse p-sides are plugged in via 16-ch ribbon cables (and thus must come in order), only first pos is listed.
+
+
+    param0->fDetNameVec.clear(); // JAM 27-06-2024: remove previous names, otherwise we duplicate the elements for each submit...
     //----- Slot 1 -----
     TString s1name = "slot1_MSPad_17A";
     param0->fDetNameVec.push_back(s1name);  // add detector to named list
