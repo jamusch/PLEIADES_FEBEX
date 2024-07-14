@@ -120,7 +120,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                     detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
                     detPhysics->fpTrapezEnergy = theDetector->GetChannel(hitLoc[0])->fDTrapezEnergy;
-                    PulseShapeIntegration(theDetector->GetChannel(hitLoc[0]), detPhysics);
+                    PulseShapeIntegration(theDetector->GetChannel(hitLoc[0]), detPhysics, "pSide");
                     #endif
                 }
                 else if(hitLoc.size() == 2)   // interstrip event, add energies
@@ -133,12 +133,12 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
                 else { TGo4Log::Warn("TPLEIADESPhysProc - case not caught by pStripSelect, what the hell is this?"); }
 
-                //fill n-side energy
+                // fill n-side energy
                 // NB: I do not fill FPGA and Trapez energies for Si pad n-sides as they were clipped.
                 //detPhysics->fpFPGAEnergy = theDetector->GetChannel(7)->fDFPGAEnergy;
                 //detPhysics->fpTrapezEnergy = theDetector->GetChannel(7)->fDTrapezEnergy;
                 #ifdef TPLEIADES_FILL_TRACES
-                PulseShapeIntegration(theDetector->GetChannel(7), detPhysics);
+                PulseShapeIntegration(theDetector->GetChannel(7), detPhysics, "nSide");
                 #endif
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
@@ -149,8 +149,25 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                     return kFALSE;
                 }
 
-                //fill DSSD energies
-                stdDSSDEnergy("FPGA", theDetector, detPhysics);
+                // fill DSSD energies
+                detPhysics->fpFPGAEnergy = theDetector->GetChannel(0)->fDFPGAEnergy + theDetector->GetChannel(1)->fDFPGAEnergy;
+                detPhysics->fnFPGAEnergy = theDetector->GetChannel(2)->fDFPGAEnergy + theDetector->GetChannel(3)->fDFPGAEnergy;
+                Double_t frontEnergy = theDetector->GetChannel(0)->fDTrapezEnergy + theDetector->GetChannel(1)->fDTrapezEnergy;
+                Double_t backEnergy = theDetector->GetChannel(2)->fDTrapezEnergy + theDetector->GetChannel(3)->fDTrapezEnergy;
+                detPhysics->fpTrapezEnergy = frontEnergy;
+                detPhysics->fnTrapezEnergy = backEnergy;
+                //std::cout << "DSSD TRAPEZ filters give " << theDetector->GetChannel(0)->fDTrapezEnergy << ", " << theDetector->GetChannel(1)->fDTrapezEnergy << ", " << theDetector->GetChannel(2)->fDTrapezEnergy << ", " << theDetector->GetChannel(3)->fDTrapezEnergy << std::endl;
+
+                // fill position information
+                if(frontEnergy == 0 || backEnergy == 0)
+                {
+                    TGo4Log::Warn("TPLEIADESPhysProc - DSSD energy was zero so position was not calculated");
+                }
+                else
+                {
+                    detPhysics->fNormPosX = (theDetector->GetChannel(0)->fDTrapezEnergy - theDetector->GetChannel(1)->fDTrapezEnergy)/frontEnergy;
+                    detPhysics->fNormPosY = (theDetector->GetChannel(2)->fDTrapezEnergy - theDetector->GetChannel(3)->fDTrapezEnergy)/backEnergy;
+                }
             }
             else if((theDetector->GetDetType()) == "Crystal")  // fill energies for crystal
             {
@@ -161,7 +178,10 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 // load the 2 crystal channels from the Raw Event input
-                stdCrystalEnergy("FPGA", theDetector, detPhysics);
+                detPhysics->fpTrapezEnergy = theDetector->GetChannel(0)->fDTrapezEnergy;
+                PulseShapeIntegration(theDetector->GetChannel(0), detPhysics, "pSide");
+                detPhysics->fnTrapezEnergy = theDetector->GetChannel(1)->fDTrapezEnergy;
+                PulseShapeIntegration(theDetector->GetChannel(1), detPhysics, "nSide");
             }
             else
             {
@@ -231,7 +251,7 @@ std::vector<Short_t> TPLEIADESPhysProc::pStripSelect(TPLEIADESDetector* theDetec
 }
 
 //------------------------------------------------------------------------
-void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLEIADESDetPhysics *detPhysics)
+void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLEIADESDetPhysics *detPhysics, TString side)
 {
     std::vector<Double_t> trace, traceBLR;
     trace = theDetChan->fDTrace;
@@ -257,18 +277,39 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     startInt = startRise+900;  stopInt = startRise+2800;
     if(stopInt > 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - stopInt > trace length, skipping!"); return; }
 
-    Double_t  sumIntegral, fitIntegral;
+    Double_t  sumIntegral;//, fitIntegral;
     // evaluate summing integral
     sumIntegral = std::accumulate(traceBLR.begin()+startInt, traceBLR.begin()+stopInt, 0);
-
+    //std::cout << "Detector " << theDetChan->GetDetName() << " has sum Integral " << sumIntegral << std::endl;
+    /**
     // evaluate fitting integral
     TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetChan->GetDetId()]->GetChanDisplay(theDetChan->GetName())->hTraceBLRChan;
-    traceBLRHist->Fit("expo", "WCQF0+", "", startInt, stopInt);
-    fitIntegral = traceBLRHist->GetFunction("expo")->Integral(startInt, stopInt);
-
+    TF1 *expFunc = new TF1("expFunc", "[0]*exp(-[1]*x)", 0, 3000);
+    traceBLRHist->Fit(expFunc, "WCQF0+", "", startInt, stopInt);
+    TF1 *fittedFunc = dynamic_cast<TF1*>(traceBLRHist->GetListOfFunctions()->FindObject("expFunc"));
+    fitIntegral = fittedFunc->Integral(startInt, stopInt);
+    //std::cout << "Detector " << theDetChan->GetDetName() << " has fit Integral " << fitIntegral << std::endl;
+    **/
     // assign integrals to event
-    detPhysics->fpTraceIntEnergy = sumIntegral;
-    detPhysics->fpExpFitIntEnergy = fitIntegral;
+    if(side == "pSide")
+    {
+        if(theDetChan->fDPolarity == 0)
+        {
+            detPhysics->fpTraceIntEnergy = sumIntegral;
+            //detPhysics->fpExpFitIntEnergy = fitIntegral;
+        }
+        else if(theDetChan->fDPolarity == 1)
+        {
+            detPhysics->fpTraceIntEnergy = sumIntegral * (-1);
+            //detPhysics->fpExpFitIntEnergy = fitIntegral * (-1);
+        }
+    }
+    else if(side == "nSide")
+    {
+        detPhysics->fnTraceIntEnergy = sumIntegral;
+        //detPhysics->fnExpFitIntEnergy = fitIntegral;
+    }
+    else { throw std::invalid_argument("TPLEIADESPhysProc::PulseShapeIntegration - side of det to record not given properly"); }
 }
 
 //------------------------------------------------------------------------

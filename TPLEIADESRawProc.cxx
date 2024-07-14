@@ -666,9 +666,12 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                             if(l_l < (l_trace_size -(2*l_win)-l_gap))
                             {
                                 //h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2) / (Real_t) l_win);
-                                h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
+                                //h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
                             }
                         }
+                        // NB: Nik chose not to fill the histo if both windows weren't on trace.
+                        // I'm plotting trapez for full range, and hoping that l_A2 is zero when not on screen.
+                        h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
                     }
                     //printf ("next trace \n\n\n\n");
                     //sleep (1);

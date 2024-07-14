@@ -224,7 +224,12 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 
                 // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+                //theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
+                // TRAPEZ energy doesn't work for DSSD because polarity in f_user.C is wrong!!! must invert TRAPEZ filter
+                std::vector<Double_t> vec = theRawChan->fRTraceTRAPEZ;
+                for(Double_t& value : vec) { value *= -1; }
+                auto max_iter = std::max_element(vec.begin(), vec.end());
+                theDetChan->fDTrapezEnergy    = *max_iter;
                 theDetChan->fDTrace           = theRawChan->fRTrace;
                 theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
                 theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;

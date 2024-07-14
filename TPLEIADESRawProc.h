@@ -64,10 +64,8 @@
 #define BASE_LINE_SUBT_SIZE   20
 
 #ifdef TRAPEZ
-    #define TRAPEZ_N_GAP  8
-    #define TRAPEZ_N_AVG 11
-    //#define TRAPEZ_N_GAP 45
-    //#define TRAPEZ_N_AVG 1000
+    #define TRAPEZ_N_GAP  200
+    #define TRAPEZ_N_AVG  100
 #endif // TRAPEZ
 
 #ifdef MWD
