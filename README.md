@@ -50,62 +50,49 @@ The `TPLEIADESRawEvent` class emulates the FEBEX DAQ structure by featuring a se
 The `TPLEIADESFebChannel`s store the data: e.g. `fRPolarity` (raw polarity), `fRTraceBLR` (raw trace baseline restored), etc. Traces are stored in `std::vector`s. The filling of the raw traces can be suppressed for performance reason by commenting this definition in `TPLEIADESRawEvent.h`:
 > \#define TPLEIADES_FILL_TRACES 1
 
-###Configuration and control with TPLEIADESRawParam:
-The class TPLEIADESRawParam is a TGo4Parameter that may defines the setup of the unpacker 
-and may offer additional run control flags.
 
-The following flag is an example of interactive control:
+## Configuration with `TPLEIADESParam`
+The class `TPLEIADESParam` is a `TGo4Parameter` that can be used to control the analysis without recompiling. We have also used it as a configuration script with which to configure the DAQ setup without needing to touch the inner workings of the code. **The DAQ setup needs to be correctly configured in `set_PLEIADESParam.C` before the analysis will work.** An example we have already seen is `fBoardID`, which is a member of `TPLEIADESParam` that stores the active FEBEX board positions.
 
->Bool_t fSlowMotion; 
-<- if true than only process one MBS event and stop. 
+An example of interactive control is the flag `fSlowMotion`, which, if true, than only one MBS event is processed before Go4 is stopped. This can be helpful to debug data by printout in analysis terminal. When pressing the "start" button in Go4 gu, the next event is processed. 
 
-This can be helpful to debug data by printout in analysis terminal. When pressing the "start" button in Go4 gui,
-the next event is processed. 
-
-Like all Go4 parameters, one can inspect (and change) the current contents of TPLEIADESRawParam in the GUI
+Like all Go4 parameters, one can inspect (and change) the current contents of `TPLEIADESParam` in the GUI
 with the parameter editor.
 
 
-### Configuration script set_PLEIADESRawParam.C:
+## Second step: `TPLEIADESDet`
+The second step is essentially an advanced channel mapping that takes the raw FEBEX like structure from step 1 and formats it into detector objects that emulate the detector. In most cases, it is intended that step 1 and 2 get run together and the 'raw' data (i.e. before trace analysis) is stored as the output of step 2. These steps were separated to help debugging and provide extra flexibility, but in 99% of cases you will want to implement the detector map.
 
-By default, the parameter values as specified in the source code of TPLEIADESRawParam.cxx are used, so one could change the setup
-here and recompile the user analysis.
-By means of the interactive parameter editor and the autosave file, one could override this though (however, old
-histgrams of deactivated modules will still be kept in the autosave file then)
+The `TPLEIADESDetEvent` class has `TPLEIADESDetector` objects, which represent the individual detectors inside the PLEIADES telescope, and `TPLEIADESDetChan` objects, which are the various channels of those detectors. In the default setup, the output should feature objects for 6 Si pad detectors, 1 DSSD, and 1 crystal stopper.
 
-The script set_PLEIADESRawParam.C offers the possibility to change the setup without recompiling or using the parameter editor. 
-If existing in the working directory, it will override both previous setups.
-To use it, please edit the values assigned to the parameter members in the script 
-Then just "submit and start" again the analysis from gui, or rerun go4analysis batch job.
+The detector map is setup in `set_PLEIADESParam.C`. The following information must be given for each detector:
+- the detector name: e.g. "slot1_MSPad_17A"
+- the detector type: one of "SiPad", "DSSD", or "Crystal"
+- the position of the first p-side: e.g. "0x100"
+- the position of the n-side: e.g. "0x140"
 
+The code used for the channel map is a 12 bit word: bit 9/8 are for SFP, bit 7--4 are for Board slot, bit 3--0 are for channel position.
 
-### Checking the tree contents with ROOT macro
+## Third step: `TPLEIADESPhys`
+The third step is where trace analysis and any other complex event construction should be done. The idea is that after this step, the traces will be discarded so that light, minimalist data files can be used for the real physics analysis. The `TPLEIADESPhysEvent` object features `TPLEIADESDetPhysics` objects that represent the detectors but only have a single p/n side energy values and a position for simplicity. The goal of this step is then to construct those single values.
 
-To verify that event contents were written to the output tree, subfolder macros contains an example ROOT macro 
->MyTreeAnalysis.C
+In his code, Nik Kurz implements two filters to extract the pulse height from the traces: the bi-box filter (called `TRAPEZ` in his code) and a moving window deconvolution (called `MWD` in the code). These are basic energy filters and are implemented in step 1. Ideally they'd probably be done here instead, but moving that code is too much effort. Currently we use the `TRAPEZ` filter, but we should probably move to the MWD.
 
-This will read first TTree of Go4 produced event store file and display the contents of fTrace vector for the 16 channels
-of one single frontend board (indices sfp=1, slave=1).
+In the present state of the code (as finished for my thesis), `TPLEIADESPhysProc` features the following functions:
+- `pStripSelect`: a function that searches for the active p strip and returns the hit location(s).
+- `PulseShapeIntegration`: a function that attempts to integrate the backside of the pulse, currently through summing the bins.
+- `stdSinSideEnergy`: the "standard" energy function for Si n side. Currently directly copies the FPGA energy.
+- `stdDSSDEnergy`: a function that adds the DSSD channels to get p and n side energies. Currently also uses FPGA energy.
+- `stdCrystalEnergy`: currently blank
+- `FillClipStatsHists`: a function that created histograms on the clipping statistics of traces.
+- `FillTOThreshHists`: a function that implemented 'time over threshold' for clipped traces.
+- `ExpFitPHRecon`: a function that attempted to implement an exponential fit pulse height reconstruction.
+- `ExpIntegPHRecon`: a function that implements an integration of the exponential tail of the trace.
 
-To use this macro:
+I should probably clean some of these up for a future release...
 
->root [0] .L MyTreeAnalysis.C++
-
->...
-
->root [1] MyTreeAnalysis ana(0,"/u/adamczew/go4work/go4-app/PLEIADES/Plejades.root")
-
-(please adjust example filename in second constructor argument)
->...
-
->root [2] ana.Loop();
-
-The contents of the febex traces are displayed for each event in a divided TCanvas.
-
-
-## BUILDING and STARTUP:
-
-To build it just enable go4 environment by calling 
+## Building analysis and startup
+To build it just enable the Go4 environment by calling 
 
 > . $GO4SYS/go4login
 
@@ -114,33 +101,22 @@ To build it just enable go4 environment by calling
 **Note for GSI lxpool users: please use**
 >. /cvmfs/eel.gsi.de/bin/go4login
 
-Then call
-> make 
+The analysis is then built with a simple `make` call. Use `make clean; make;` for recompiling.
 
 To start Go4 GUI just call
 > go4
 
-and launch analysis in local folder with libGo4UserAnalysis.so.
-Do not forget to create a Go4 hotstart script after this!
+and launch analysis in local folder with `libGo4UserAnalysis.so`. Do not forget to create a Go4 hotstart script after this!
 
 As usual, 
 > go4analysis 
 
 will offer a batch mode (please see go4analysis -h)
 
-This code has been compiled and tested with  Go4 v6.1.2 and root 6.22/08. 
+## Further information
+More information on Go4 is available [here](https://www.gsi.de/en/work/research/experiment_electronics/data_processing/data_analysis/the_go4_home_page).
 
-and calling "make clean;make;" for recompiling.
+More information on the PLEIADES detector and FEBEX DAQ is available on the [PLEIADES Wiki](https://pleiades.wiki.triumf.ca/).
 
-## FURTHER INFORMATION
-All information about go4 are available at
->https://go4.gsi.de
-
-
-Please have a look at the Go4 user manual available at
->http://web-docs.gsi.de/~go4/go4V06/manuals/Go4introV6.pdf
-
-(or in the Go4 GUI Help menu ;-))
-
-##### JAM 15-12-2023
+This code has been compiled and tested with Go4 v6.2.0 and root 6.26/04. 
 
