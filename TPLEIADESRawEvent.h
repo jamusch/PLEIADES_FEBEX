@@ -15,16 +15,17 @@
 #ifndef TPLEIADESRAWEVENT_H
 #define TPLEIADESRAWEVENT_H
 
-// disable this define to speed up analysis, only histogram filling then
-#define TPLEIADES_FILL_TRACES 1
-
 #include "TGo4EventElement.h"
 #include "TGo4CompositeEvent.h"
 
+// define statements must be commented out to disable
+#define TPLEIADES_FILL_TRACES 1     // toggle off to speed up analysis, only histogram filling then
+#define BIBOX   1                   // toggle if BIBOX filter is used
+#define MWD     1                   // toggle if MWC (moving window deconvolution) filter is used
 
-#define MAX_SFP          4
-#define MAX_SLAVE        5
-#define N_CHA            16
+#define MAX_SFP     4   // max number of SFPs possible
+#define MAX_SLAVE   5   // max number of FEBEX cards possible
+#define N_CHA       16  // max number of channels of FEBEX card
 
 
 //-----------------------------------------------------------------------
@@ -46,15 +47,17 @@ class TPLEIADESFebChannel : public TGo4EventElement
         UInt_t fRHitMultiplicity;
         Int_t  fRFPGAEnergy;
         Int_t  fRFPGAHitTime;
-        std::vector<Double_t> fRFPGATRAPEZ;
+        std::vector<Double_t> fRFPGABIBOX;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
-        Int_t fRTrapezEnergy;
         std::vector<Double_t>   fRTrace;
         std::vector<Double_t>   fRTraceBLR;
-        std::vector<Double_t>   fRTraceTRAPEZ;
-        #endif
+        Int_t fRBIBOXEnergy;
+        std::vector<Double_t>   fRBIBOXTrace;
+        Int_t fRMWDEnergy;
+        std::vector<Double_t>   fRMWDTrace;
+        #endif // TPLEIADES_FILL_TRACES
 
     ClassDefOverride(TPLEIADESFebChannel,1)
 };
@@ -116,6 +119,7 @@ class TPLEIADESRawEvent : public TGo4CompositeEvent
 
         Int_t fSequenceNumber;      // event sequence number incremented by MBS Trigger
         Bool_t fPhysTrigger;        // was event a physics trigger
+        Bool_t fPulserTrigger = kFALSE;      // does event have pulser
 
     ClassDefOverride(TPLEIADESRawEvent,1)
 };

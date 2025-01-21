@@ -41,16 +41,18 @@ void TPLEIADESFebChannel::Clear(Option_t *opt)
     // all members should be cleared, i.e. assigned to a "not filled" value
     /** FEBEX special channel properties **/
     fRHitMultiplicity = 0;
-    fRFPGAEnergy = 0;
     fRFPGAHitTime = 0;
-    fRFPGATRAPEZ.clear();
+    fRFPGAEnergy = 0;
+    fRFPGABIBOX.clear();
 
     /** FEBEX trace properties **/
     #ifdef TPLEIADES_FILL_TRACES
-    fRTrapezEnergy = 0;
     fRTrace.clear();
     fRTraceBLR.clear();
-    fRTraceTRAPEZ.clear();
+    fRBIBOXEnergy = 0;
+    fRBIBOXTrace.clear();
+    fRMWDEnergy = 0;
+    fRMWDTrace.clear();
     #endif
 }
 

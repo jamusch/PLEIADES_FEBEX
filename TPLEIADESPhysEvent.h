@@ -42,9 +42,10 @@ class TPLEIADESDetPhysics: public TGo4EventElement
         TString GetDetType() { return fDetType; }
 
         /** physics properties of detector **/
-        Double_t fpFPGAEnergy = -99;    Double_t fpTrapezEnergy = -99;  Double_t  fpTraceIntEnergy = -99;   Double_t  fpExpFitIntEnergy = -99;
-        Double_t fnFPGAEnergy = -99;    Double_t fnTrapezEnergy = -99;  Double_t  fnTraceIntEnergy = -99;   Double_t  fnExpFitIntEnergy = -99;
+        Double_t fpFPGAEnergy = -99;    Double_t fpBIBOXEnergy = -99;  Double_t  fpTraceIntEnergy = -99;   Double_t  fpExpFitIntEnergy = -99;
+        Double_t fnFPGAEnergy = -99;    Double_t fnBIBOXEnergy = -99;  Double_t  fnTraceIntEnergy = -99;   Double_t  fnExpFitIntEnergy = -99;
         Double_t fNormPosX = -99;       Double_t fNormPosY = -99;
+        Bool_t fPulser = kFALSE;
 
     private:
         TString fDetName;       // detector name setup in set_PLEIADESParam.C
@@ -78,7 +79,7 @@ class TPLEIADESPhysEvent : public TGo4CompositeEvent
 
         Int_t fSequenceNumber;  // tracks MBS event number
         Bool_t fPhysTrigger;    // tracks MBS physics trigger
-
+        Bool_t fPulserTrigger;  // does event have pulser?
 
     ClassDef(TPLEIADESPhysEvent, 1)
 };

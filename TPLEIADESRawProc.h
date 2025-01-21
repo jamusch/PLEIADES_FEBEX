@@ -17,6 +17,9 @@
 
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESRawEvent.h"
+#include "TF1.h"
+
+#include "stdint.h"
 
 // comment out define statements to turn on/off
 
@@ -32,22 +35,26 @@
 
 #define USE_MBS_PARAM     1
 
-#define TRAPEZ 1
-#define MWD    1
+/* ------------------------------------------------
+// now these definitions are in TPLEIADESRawEvent.h
+#define BIBOX 1            // toggle if BIBOX filter is used
+#define MWD    1           // toggle if MWC (moving window deconvolution) filter is used
+#define MAX_SFP           4
+#define MAX_SLAVE        16
+#define N_CHA            16
+------------------------------------------------ */
 
-// JAM23: now these definitions are in TPLEIADESRawEvent.h
-//#define MAX_SFP           4
-//#define MAX_SLAVE        16
-//#define N_CHA            16
+//#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
+#define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
 
 #define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
 
 #ifdef USE_MBS_PARAM
-    #define MAX_TRACE_SIZE    8000   // in samples
-    #define MAX_TRAPEZ_N_AVG  2000   // in samples
+    #define MAX_TRACE_SIZE   8000   // in samples
+    #define MAX_BIBOX_N_AVG  2000   // in samples
 #else 
     #define     TRACE_SIZE    1000   // in samples 1024
-    //#define     TRAPEZ_N_AVG    64   // in samples
+    //#define     BIBOX_N_AVG    64   // in samples
     // nr of slaves on SFP 0  1  2  3
     //                     |  |  |  |
     #define NR_SLAVES    { 0, 5, 0, 0}
@@ -63,16 +70,15 @@
 #define BASE_LINE_SUBT_START  0
 #define BASE_LINE_SUBT_SIZE   20
 
-#ifdef TRAPEZ
-    #define TRAPEZ_N_GAP  200
-    #define TRAPEZ_N_AVG  100
-#endif // TRAPEZ
+#ifdef BIBOX
+    #define BIBOX_N_GAP  200
+    #define BIBOX_N_AVG  100
+#endif // BIBOX
 
 #ifdef MWD
-    #define MWD_WIND   1500
-    #define MWD_AVG    1400   // MWD_WIND must be bigger than MWD_AVG
-    //#define MWD_TAU   1000   // differential input febex  // in number of trace slices
-    #define MWD_TAU   5000   // differential input febex  // in number of trace slices
+    #define MWD_WIND   400
+    #define MWD_AVG    350   // MWD_WIND must be bigger than MWD_AVG
+    //#define MWD_TAU    1538   // now defined on line 189 of TPLEIADESRawProc.cxx due to multiple values needed
 #endif // MWD
 
 #define RON  "\x1B[7m"
@@ -102,17 +108,21 @@ class TPLEIADESRawProc : public TGo4EventProcessor
 
         TH1  *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_trapez_fpga  [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_trapez_f     [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_trapez_e     [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_trace_blr_fit [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_fpga_e       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_corr_e_fpga_trapez [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_mwd_f        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_mwd_a        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_bibox_fpga   [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        #ifdef BIBOX
+        TH1  *h_corr_e_fpga_bibox [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_bibox_f      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_bibox_e      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        #endif // BIBOX
+        #ifdef MWD
+        TH1  *h_mwd_d        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_mwd_c        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_mwd_i        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_mwd_e        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_sum_trace    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_peak         [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_valley       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        #endif // MWD
+        #ifdef NIK_EXTRA_HISTS
         TH1  *h_trgti_hitti  [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_ch_hitpat    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_hitpat       [MAX_SFP][MAX_SLAVE];         //!
@@ -120,8 +130,10 @@ class TPLEIADESRawProc : public TGo4EventProcessor
         TH1  *h_hitpat_tr    [MAX_SFP][MAX_SLAVE];         //!
         TH1  *h_ch_hitpat_di [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_hitpat_di    [MAX_SFP][MAX_SLAVE];         //!
-        TH1  *h_test;
+        TH1  *h_peak         [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        TH1  *h_valley       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_adc_spect    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        #endif // NIK_EXTRA_HISTS
 
     ClassDef(TPLEIADESRawProc,1)
 };

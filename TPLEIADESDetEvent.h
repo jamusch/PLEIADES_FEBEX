@@ -60,15 +60,17 @@ class TPLEIADESDetChan : public TGo4EventElement
         UInt_t fDHitMultiplicity;
         Int_t  fDFPGAEnergy;
         Int_t  fDFPGAHitTime;
-        std::vector<Double_t> fDFPGATRAPEZ;
+        std::vector<Double_t> fDFPGABIBOX;
 
         /** FEBEX trace properties **/
         #ifdef TPLEIADES_FILL_TRACES
-        Int_t fDTrapezEnergy;
         std::vector<Double_t>   fDTrace;
         std::vector<Double_t>   fDTraceBLR;
-        std::vector<Double_t>   fDTraceTRAPEZ;
-        #endif
+        Int_t fDBIBOXEnergy;
+        std::vector<Double_t>   fDBIBOXTrace;
+        Int_t fDMWDEnergy;
+        std::vector<Double_t>   fDMWDTrace;
+        #endif // TPLEIADES_FILL_TRACES
 
     private:
         TString fDetName;       // detector name setup in set_PLEIADESParam.C
@@ -145,6 +147,7 @@ class TPLEIADESDetEvent : public TGo4CompositeEvent
 
         Int_t fSequenceNumber;  // tracks MBS event number
         Bool_t fPhysTrigger;    // tracks MBS physics trigger
+        Bool_t fPulserTrigger;  // does event have pulser?
 
     ClassDef(TPLEIADESDetEvent, 1)
 };

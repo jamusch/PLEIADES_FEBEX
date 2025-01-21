@@ -96,6 +96,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
 
     fOutEvent->fSequenceNumber = RawEvent->fSequenceNumber;
     fOutEvent->fPhysTrigger = RawEvent->fPhysTrigger;
+    fOutEvent->fPulserTrigger = RawEvent->fPulserTrigger;
 
     // initialize next output as not filled, i.e. it is only stored when something is in
     fOutEvent->SetValid(isValid);
@@ -140,21 +141,31 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
                 chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
                 if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(j); }
-                if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(j, theDetChan->fDTrapezEnergy); }
 
                 // load energy information
                 theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
                 theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+                theDetChan->fDFPGABIBOX       = theRawChan->fRFPGABIBOX;
 
                 // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
                 theDetChan->fDTrace           = theRawChan->fRTrace;
                 theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
+
+                #ifdef BIBOX
+                theDetChan->fDBIBOXEnergy    = theRawChan->fRBIBOXEnergy;
+                theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+                #endif // BIBOX
+
+                #ifdef MWD
+                theDetChan->fDMWDEnergy    = theRawChan->fRMWDEnergy;
+                theDetChan->fDMWDTrace     = theRawChan->fRMWDTrace;
+                #endif // MWD
+
+                if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(j, theDetChan->fDBIBOXEnergy); }
+
                 chanDisplay->FillTraces();
-                #endif
+                #endif // TPLEIADES_FILL_TRACES
             }
 
             // load the data for the n-side
@@ -173,21 +184,31 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             theDetChan->fDHitMultiplicity = theRawChan->fRHitMultiplicity;
             chanDisplay->hHitMultiplicity->Fill(theDetChan->fDHitMultiplicity);
             if(theDetChan->fDHitMultiplicity > 0) { detDisplay->hDetHitPattern->Fill(7); }
-            if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(7, theDetChan->fDTrapezEnergy); }
 
             // load energy information
             theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
             theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
-            theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+            theDetChan->fDFPGABIBOX      = theRawChan->fRFPGABIBOX;
 
             // load trace information
             #ifdef TPLEIADES_FILL_TRACES
-            theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
             theDetChan->fDTrace           = theRawChan->fRTrace;
             theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
-            theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
+
+            #ifdef BIBOX
+            theDetChan->fDBIBOXEnergy    = theRawChan->fRBIBOXEnergy;
+            theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+            #endif // BIBOX
+
+            #ifdef MWD
+            theDetChan->fDMWDEnergy    = theRawChan->fRMWDEnergy;
+            theDetChan->fDMWDTrace     = theRawChan->fRMWDTrace;
+            #endif // MWD
+
+            if(theDetChan->fDHitMultiplicity == 1) { detDisplay->hDetEnergyPattern->Fill(7, theDetChan->fDBIBOXEnergy); }
+
             chanDisplay->FillTraces();
-            #endif
+            #endif // TPLEIADES_FILL_TRACES
         }
         else if((theDetector->GetDetType()) == "DSSD")
         {
@@ -220,21 +241,30 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 // load energy information
                 theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
                 theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+                theDetChan->fDFPGABIBOX      = theRawChan->fRFPGABIBOX;
 
                 // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                //theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
-                // TRAPEZ energy doesn't work for DSSD because polarity in f_user.C is wrong!!! must invert TRAPEZ filter
-                std::vector<Double_t> vec = theRawChan->fRTraceTRAPEZ;
-                for(Double_t& value : vec) { value *= -1; }
-                auto max_iter = std::max_element(vec.begin(), vec.end());
-                theDetChan->fDTrapezEnergy    = *max_iter;
                 theDetChan->fDTrace           = theRawChan->fRTrace;
                 theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
+
+                #ifdef BIBOX
+                //theDetChan->fDBIBOXEnergy    = theRawChan->fRBIBOXEnergy;
+                // BIBOX energy doesn't work for DSSD because polarity in f_user.C is wrong!!! must invert BIBOX filter
+                std::vector<Double_t> vec = theRawChan->fRBIBOXTrace;
+                for(Double_t& value : vec) { value *= -1; }
+                auto max_iter = std::max_element(vec.begin(), vec.end());
+                theDetChan->fDBIBOXEnergy    = *max_iter;
+                theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+                #endif // BIBOX
+
+                #ifdef MWD
+                theDetChan->fDMWDEnergy    = theRawChan->fRMWDEnergy;
+                theDetChan->fDMWDTrace     = theRawChan->fRMWDTrace;
+                #endif // MWD
+
                 chanDisplay->FillTraces();
-                #endif
+                #endif // TPLEIADES_FILL_TRACES
             }
         }
         else if((theDetector->GetDetType()) == "Crystal")
@@ -268,16 +298,25 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 // load energy information
                 theDetChan->fDFPGAEnergy      = theRawChan->fRFPGAEnergy;
                 theDetChan->fDFPGAHitTime     = theRawChan->fRFPGAHitTime;
-                theDetChan->fDFPGATRAPEZ      = theRawChan->fRFPGATRAPEZ;
+                theDetChan->fDFPGABIBOX      = theRawChan->fRFPGABIBOX;
 
                 // load trace information
                 #ifdef TPLEIADES_FILL_TRACES
-                theDetChan->fDTrapezEnergy    = theRawChan->fRTrapezEnergy;
                 theDetChan->fDTrace           = theRawChan->fRTrace;
                 theDetChan->fDTraceBLR        = theRawChan->fRTraceBLR;
-                theDetChan->fDTraceTRAPEZ     = theRawChan->fRTraceTRAPEZ;
+
+                #ifdef BIBOX
+                theDetChan->fDBIBOXEnergy    = theRawChan->fRBIBOXEnergy;
+                theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+                #endif // BIBOX
+
+                #ifdef MWD
+                theDetChan->fDMWDEnergy    = theRawChan->fRMWDEnergy;
+                theDetChan->fDMWDTrace     = theRawChan->fRMWDTrace;
+                #endif // MWD
+
                 chanDisplay->FillTraces();
-                #endif
+                #endif // TPLEIADES_FILL_TRACES
             }
         }
         else

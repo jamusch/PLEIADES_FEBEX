@@ -68,15 +68,16 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 
     if(fOutEvent == 0)
     {
-        fOutEvent = (TPLEIADESPhysEvent*) target;
+        fOutEvent = (TPLEIADESPhysEvent*) target;   // setup output event
 
-        fPhysDisplay = new TPLEIADESPhysDisplay();
-        fPhysDisplay->InitClipStatsHists(fInEvent);
-        fPhysDisplay->InitPHReconHists(fInEvent);
+        fPhysDisplay = new TPLEIADESPhysDisplay();  // initialise display object that houses hists
+        fPhysDisplay->InitClipStatsHists(fInEvent); // initialise clipping histograms
+        fPhysDisplay->InitPHReconHists(fInEvent);   // initialise pulse height recon histograms
     }
 
-    fOutEvent->fSequenceNumber = fInEvent->fSequenceNumber;
-    fOutEvent->fPhysTrigger = fInEvent->fPhysTrigger;
+    fOutEvent->fSequenceNumber = fInEvent->fSequenceNumber;     // set MBS trigger number
+    fOutEvent->fPhysTrigger = fInEvent->fPhysTrigger;           // set MBS physics trigger
+    fOutEvent->fPulserTrigger = fInEvent->fPulserTrigger;       // does event have pulser?
 
     fOutEvent->SetValid(isValid);   // initialize next output as not filled, i.e. it is only stored when something is in
 
@@ -107,6 +108,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 std::vector<Short_t> hitLoc = pStripSelect(theDetector);
                 if(hitLoc.size() == 0)   // no hits on p strips
                 {
+                    // use of firstEmptyError suppresses 7 error messages for each channel
                     if(firstEmptyError) { TGo4Log::Info("TPLEIADESPhysProc - no hits were found by pStripSelect. Pulser event below FPGA threshold?"); firstEmptyError = kFALSE; }
                     continue;
                 }
@@ -119,27 +121,32 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 {
                     detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
-                    detPhysics->fpTrapezEnergy = theDetector->GetChannel(hitLoc[0])->fDTrapezEnergy;
+                    detPhysics->fpBIBOXEnergy = theDetector->GetChannel(hitLoc[0])->fDBIBOXEnergy;
                     PulseShapeIntegration(theDetector->GetChannel(hitLoc[0]), detPhysics, "pSide");
-                    #endif
+                    #endif // TPLEIADES_FILL_TRACES
                 }
                 else if(hitLoc.size() == 2)   // interstrip event, add energies
                 {
                     detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy + theDetector->GetChannel(hitLoc[1])->fDFPGAEnergy;
-                    detPhysics->fpTrapezEnergy = theDetector->GetChannel(hitLoc[0])->fDTrapezEnergy + theDetector->GetChannel(hitLoc[1])->fDTrapezEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
+                    detPhysics->fpBIBOXEnergy = theDetector->GetChannel(hitLoc[0])->fDBIBOXEnergy + theDetector->GetChannel(hitLoc[1])->fDBIBOXEnergy;
                     TGo4Log::Info("TPLEIADESPhysProc - pStripSelect detected interstrip event, energies summed, pulse shape integrals skipped.");
-                    #endif
+                    #endif  // TPLEIADES_FILL_TRACES
                 }
                 else { TGo4Log::Warn("TPLEIADESPhysProc - case not caught by pStripSelect, what the hell is this?"); }
 
                 // fill n-side energy
-                // NB: I do not fill FPGA and Trapez energies for Si pad n-sides as they were clipped.
-                //detPhysics->fpFPGAEnergy = theDetector->GetChannel(7)->fDFPGAEnergy;
-                //detPhysics->fpTrapezEnergy = theDetector->GetChannel(7)->fDTrapezEnergy;
+                // NB: FPGA and BIBOX energies won't be useful as they were clipped
+                if(theDetector->GetChannel(7)->fDHitMultiplicity == 1)
+                {
+                    detPhysics->fnFPGAEnergy = theDetector->GetChannel(7)->fDFPGAEnergy;
+                    #ifdef TPLEIADES_FILL_TRACES
+                    detPhysics->fnBIBOXEnergy = theDetector->GetChannel(7)->fDBIBOXEnergy;
+                    #endif // TPLEIADES_FILL_TRACES
+                }
                 #ifdef TPLEIADES_FILL_TRACES
                 PulseShapeIntegration(theDetector->GetChannel(7), detPhysics, "nSide");
-                #endif
+                #endif // TPLEIADES_FILL_TRACES
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
             {
@@ -152,11 +159,12 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 // fill DSSD energies
                 detPhysics->fpFPGAEnergy = theDetector->GetChannel(0)->fDFPGAEnergy + theDetector->GetChannel(1)->fDFPGAEnergy;
                 detPhysics->fnFPGAEnergy = theDetector->GetChannel(2)->fDFPGAEnergy + theDetector->GetChannel(3)->fDFPGAEnergy;
-                Double_t frontEnergy = theDetector->GetChannel(0)->fDTrapezEnergy + theDetector->GetChannel(1)->fDTrapezEnergy;
-                Double_t backEnergy = theDetector->GetChannel(2)->fDTrapezEnergy + theDetector->GetChannel(3)->fDTrapezEnergy;
-                detPhysics->fpTrapezEnergy = frontEnergy;
-                detPhysics->fnTrapezEnergy = backEnergy;
-                //std::cout << "DSSD TRAPEZ filters give " << theDetector->GetChannel(0)->fDTrapezEnergy << ", " << theDetector->GetChannel(1)->fDTrapezEnergy << ", " << theDetector->GetChannel(2)->fDTrapezEnergy << ", " << theDetector->GetChannel(3)->fDTrapezEnergy << std::endl;
+                #ifdef TPLEIADES_FILL_TRACES
+                Double_t frontEnergy = theDetector->GetChannel(0)->fDBIBOXEnergy + theDetector->GetChannel(1)->fDBIBOXEnergy;
+                Double_t backEnergy = theDetector->GetChannel(2)->fDBIBOXEnergy + theDetector->GetChannel(3)->fDBIBOXEnergy;
+                detPhysics->fpBIBOXEnergy = frontEnergy;
+                detPhysics->fnBIBOXEnergy = backEnergy;
+                //std::cout << "DSSD BIBOX filters give " << theDetector->GetChannel(0)->fDBIBOXEnergy << ", " << theDetector->GetChannel(1)->fDBIBOXEnergy << ", " << theDetector->GetChannel(2)->fDBIBOXEnergy << ", " << theDetector->GetChannel(3)->fDBIBOXEnergy << std::endl;
 
                 // fill position information
                 if(frontEnergy == 0 || backEnergy == 0)
@@ -165,9 +173,10 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
                 else
                 {
-                    detPhysics->fNormPosX = (theDetector->GetChannel(0)->fDTrapezEnergy - theDetector->GetChannel(1)->fDTrapezEnergy)/frontEnergy;
-                    detPhysics->fNormPosY = (theDetector->GetChannel(2)->fDTrapezEnergy - theDetector->GetChannel(3)->fDTrapezEnergy)/backEnergy;
+                    detPhysics->fNormPosX = (theDetector->GetChannel(0)->fDBIBOXEnergy - theDetector->GetChannel(1)->fDBIBOXEnergy)/frontEnergy;
+                    detPhysics->fNormPosY = (theDetector->GetChannel(2)->fDBIBOXEnergy - theDetector->GetChannel(3)->fDBIBOXEnergy)/backEnergy;
                 }
+                #endif // TPLEIADES_FILL_TRACES
             }
             else if((theDetector->GetDetType()) == "Crystal")  // fill energies for crystal
             {
@@ -177,11 +186,20 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                     throw std::runtime_error("TPLEIADESPhysProc::stdEnergy Crystal detector above not setup correctly");
                 }
 
+                if(fInEvent->fPulserTrigger)
+                {
+                    TGo4Log::Info("TPLEIADESPhysProc - pulser detected, skipping!");
+                    continue;
+                }
+
+                #ifdef TPLEIADES_FILL_TRACES
                 // load the 2 crystal channels from the Raw Event input
-                detPhysics->fpTrapezEnergy = theDetector->GetChannel(0)->fDTrapezEnergy;
+                detPhysics->fpBIBOXEnergy = theDetector->GetChannel(0)->fDBIBOXEnergy;
                 PulseShapeIntegration(theDetector->GetChannel(0), detPhysics, "pSide");
-                detPhysics->fnTrapezEnergy = theDetector->GetChannel(1)->fDTrapezEnergy;
+                detPhysics->fnBIBOXEnergy = theDetector->GetChannel(1)->fDBIBOXEnergy;
                 PulseShapeIntegration(theDetector->GetChannel(1), detPhysics, "nSide");
+                std::cout << "Crys nSide Trace Int:  " << detPhysics->fnTraceIntEnergy << std::endl;
+                #endif // TPLEIADES_FILL_TRACES
             }
             else
             {
@@ -194,10 +212,13 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     catch (const runtime_error&     error) { TGo4Log::Error(error.what()); return isValid; }
 
     //------------------------------------------------------------------------
+    #ifdef TPLEIADES_FILL_TRACES
     // Calculate statistics on signal clipping
     FillClipStatsHists();
     FillTOThreshHists();
     ExpIntegPHRecon();
+    //ExpFitPHRecon();
+    #endif // TPLEIADES_FILL_TRACES
 
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
@@ -213,7 +234,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 }
 
 //------------------------------------------------------------------------
-// standard energy uses FPGA or TRAPEZ energy directly from TPLEIADESDetEvent, ie no pulse shape analysis.
+// standard energy uses FPGA or BIBOX energy directly from TPLEIADESDetEvent, ie no pulse shape analysis.
 // p-sides are handled by selection of active p-strip for SiPads and summation of L/R for DSSD
 std::vector<Short_t> TPLEIADESPhysProc::pStripSelect(TPLEIADESDetector* theDetector)
 {
@@ -251,6 +272,7 @@ std::vector<Short_t> TPLEIADESPhysProc::pStripSelect(TPLEIADESDetector* theDetec
 }
 
 //------------------------------------------------------------------------
+#ifdef TPLEIADES_FILL_TRACES
 void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLEIADESDetPhysics *detPhysics, TString side)
 {
     std::vector<Double_t> trace, traceBLR;
@@ -311,6 +333,7 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     }
     else { throw std::invalid_argument("TPLEIADESPhysProc::PulseShapeIntegration - side of det to record not given properly"); }
 }
+#endif // TPLEIADES_FILL_TRACES
 
 //------------------------------------------------------------------------
 void TPLEIADESPhysProc::stdSinSideEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)     // fills n-side energy from scalars
@@ -377,18 +400,19 @@ void TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* theD
 
 //------------------------------------------------------------------------
 // the following functions are for the pulse height analysis of saturated traces
+#ifdef TPLEIADES_FILL_TRACES
 void TPLEIADESPhysProc::FillClipStatsHists()
 {
-    std::vector<Double_t> trace, traceBLR;
-    Int_t   startRise,  satTime,    satReentry;
-    Bool_t  startRec,   satRec,     reentRec;
+    std::vector<Double_t> trace, traceBLR, traceBLRpSide;
+    Int_t   startRise,  satTime,    satReentry,     startRiseP,     peakTimeP;
+    Bool_t  startRec,   satRec,     reentRec,   startRecP, peakRecP;
     Int_t nsideCnt = 0;
 
     for(const TString& dname : fPar->fDetNameVec)
     {
         TPLEIADESDetector *theDetector = fInEvent->GetDetector(dname);
-        startRise = -99; satTime = -999; satReentry = -999;
-        startRec = satRec = reentRec = kFALSE;
+        startRise = -99; satTime = -999; satReentry = -999; startRiseP = -99; peakTimeP = -999;
+        startRec = satRec = reentRec = startRecP = peakRecP = kFALSE;
 
         if(theDetector->GetDetType() == "SiPad")
         {
@@ -409,6 +433,18 @@ void TPLEIADESPhysProc::FillClipStatsHists()
             if(satTime != -999) { fPhysDisplay->hEndHeightNSides[nsideCnt]->Fill(traceBLR[2997]); }
             fPhysDisplay->hClipLenVHghtNSides[nsideCnt]->Fill(satReentry-startRise, traceBLR[satTime]);
 
+            //rise time on p-side traces - hard coded for 2nd strip only!
+            if(kTRUE)
+            {
+                traceBLRpSide = theDetector->GetChannel(1)->fDTrace;
+                for(uint i=0; i < (traceBLRpSide.size()-5); ++i)
+                {
+                    if(!startRecP && traceBLRpSide[i+1]-traceBLRpSide[i] < -300) { startRecP = kTRUE; startRiseP = i; }
+                    //if(i<500) { std::cout << "startRecP: " << startRecP << ", Peak filter: " << traceBLRpSide[i+1]-traceBLRpSide[i] << std::endl; }
+                    if(!peakRecP && startRecP && traceBLRpSide[i+5]-traceBLRpSide[i] > -1) { peakRecP = kTRUE; peakTimeP = i+2; }
+                }
+                fPhysDisplay->hRiseTimePSides[nsideCnt]->Fill(peakTimeP - startRiseP);
+            }
             nsideCnt += 1;
         }
         else if(theDetector->GetDetType() == "Crystal")
@@ -453,8 +489,10 @@ void TPLEIADESPhysProc::FillClipStatsHists()
         }
     }
 }
+#endif // TPLEIADES_FILL_TRACES
 
 //------------------------------------------------------------------------
+#ifdef TPLEIADES_FILL_TRACES
 void TPLEIADESPhysProc::FillTOThreshHists()
 {
     std::vector<Double_t> trace, traceBLR;
@@ -555,8 +593,10 @@ void TPLEIADESPhysProc::FillTOThreshHists()
         }
     }
 }
+#endif // TPLEIADES_FILL_TRACES
 
 //------------------------------------------------------------------------
+#ifdef TPLEIADES_FILL_TRACES
 void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector<TF1*> expFunc)
 {
     /********************************************************************************
@@ -569,14 +609,11 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
     TString chanName;
     Int_t nsideCnt = 0;
 
+    TH1 *traceBLRHist;
+    TList *lis;
+    TF1 *expFunc = new TF1("expf","[0]*exp(-[1]*x)", 0, 3e3);
     TGo4Picture *fitPic = new TGo4Picture("PH Recon Fits", "PH Recon Fits", 3, 3);
     std::vector<std::vector<short>> coords = { {0,0}, {0,1}, {0,2}, {1,0}, {1,1}, {1,2}, {2,0}, {2,1}, {2,2} };
-    TF1 *linFunc = new TF1("linf","[0]+[1]*x", 0, 3e3);         //gROOT->GetListOfFunctions()->Add(linFunc);
-    TF1 *expFunc = new TF1("expf","[0]*exp(-[1]*x)", 0, 3e3);   //gROOT->GetListOfFunctions()->Add(expFunc);
-
-    //TF1 intersection functions
-    auto finter = [linFunc, expFunc](double *x, double *par) -> Double_t { return TMath::Abs(linFunc->Eval(x[0]) - expFunc->Eval(x[0])); };
-    TF1 *fint = new TF1("fint", finter, 0, 3e3, 0);       //Form("abs(%s-%s)", linFunc->GetName(), expFunc->GetName())
 
     for(const TString& dname : fPar->fDetNameVec)
     {
@@ -594,26 +631,23 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
                 if(!satEv && trace[i] == 16383) { satEv = kTRUE; }
             }
 
-            if(satEv)
-            {
-                chanName.Form("%s_nSide", theDetector->GetDetName().Data());
-                TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
-                TList* lis = traceBLRHist->GetListOfFunctions();
-                if(lis) lis->Delete(); // get rid of previous fit results
-                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
-                traceBLRHist->Fit(expFunc, "WCQF+", "", 800, 2995);
-                fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->AddH1(traceBLRHist);
-                fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->SetDrawOption("L");
-                AddPicture(fitPic);
+            // if(satEv) { }   // saturated event tag not used because want decay times on all traces for filter analysis
+            chanName.Form("%s_nSide", theDetector->GetDetName().Data());
+            traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
+            lis = traceBLRHist->GetListOfFunctions();
+            if(lis) lis->Delete(); // get rid of previous fit results
+            traceBLRHist->Fit(expFunc, "WQF+", "", 800, 2995);
+            fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->AddH1(traceBLRHist);
+            fitPic->Pic(coords[nsideCnt][0], coords[nsideCnt][1])->SetDrawOption("L");
+            AddPicture(fitPic);
 
-                Double_t xint = fint->GetMinimumX();
-                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
-                fPhysDisplay->hExpFitNSides[nsideCnt]->Fill(linFunc->Eval(xint));
-            }
+            fPhysDisplay->hExpFitNSides[nsideCnt]->Fill(expFunc->Eval(startRise));
+            //fPhysDisplay->hDecayTimesNSides[nsideCnt]->Fill(expFunc->GetParameter(1));
 
             nsideCnt += 1;
         }
-        else if(theDetector->GetDetType() == "Crystal")
+/**
+        else if(kFALSE) //if(theDetector->GetDetType() == "Crystal")
         {
             trace = theDetector->GetChannel(0)->fDTrace;
             traceBLR = theDetector->GetChannel(0)->fDTraceBLR;
@@ -624,22 +658,18 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
                 if(!satEv && trace[i] == 16383) { satEv = kTRUE; }
             }
 
-            if(satEv)
-            {
-                chanName.Form("%s_CrysFrnt", theDetector->GetDetName().Data());
-                TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
-                TList* lis = traceBLRHist->GetListOfFunctions();
-                if(lis) lis->Delete(); // get rid of previous fit results
-                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
-                traceBLRHist->Fit(expFunc, "WCQF+", "", 1200, 2995);
-                fitPic->Pic(coords[7][0], coords[7][1])->AddH1(traceBLRHist);
-                fitPic->Pic(coords[7][0], coords[7][1])->SetDrawOption("L");
-                AddPicture(fitPic);
+            // if(satEv) { }   // saturated event tag not used because want decay times on all traces for filter analysis
+            chanName.Form("%s_CrysFrnt", theDetector->GetDetName().Data());
+            traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
+            lis = traceBLRHist->GetListOfFunctions();
+            if(lis) lis->Delete(); // get rid of previous fit results
+            traceBLRHist->Fit(expFunc, "WCQF+", "", 800, 2995);
+            //fitPic->Pic(coords[7][0], coords[7][1])->AddH1(traceBLRHist);
+            //fitPic->Pic(coords[7][0], coords[7][1])->SetDrawOption("L");
+            //AddPicture(fitPic);
 
-                Double_t xint = fint->GetMinimumX();
-                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
-                fPhysDisplay->hExpFitCrysFr->Fill(linFunc->Eval(xint));
-            }
+            fPhysDisplay->hExpFitCrysFr->Fill(expFunc->Eval(startRise));
+            fPhysDisplay->hDecayTimesCrysFr->Fill(expFunc->GetParameter(1));
 
             // repeat for back side
             startRise = -99;    startRec = satEv = kFALSE;
@@ -652,27 +682,26 @@ void TPLEIADESPhysProc::ExpFitPHRecon() //std::vector<TF1*> linFunc, std::vector
                 if(!satEv && trace[i] == 16383) { satEv = kTRUE; }
             }
 
-            if(satEv)
-            {
-                chanName.Form("%s_CrysBack", theDetector->GetDetName().Data());
-                TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
-                TList* lis = traceBLRHist->GetListOfFunctions();
-                if(lis) lis->Delete(); // get rid of previous fit results
-                traceBLRHist->Fit(linFunc, "WCQF+", "", startRise-1, startRise+5);
-                traceBLRHist->Fit(expFunc, "WCQF+", "", 1500, 2995);
-                fitPic->Pic(coords[8][0], coords[8][1])->AddH1(traceBLRHist);
-                fitPic->Pic(coords[8][0], coords[8][1])->SetDrawOption("L");
-                AddPicture(fitPic);
+            // if(satEv) { }   // saturated event tag not used because want decay times on all traces for filter analysis
+            chanName.Form("%s_CrysBack", theDetector->GetDetName().Data());
+            traceBLRHist = fInEvent->fDetDisplays[theDetector->getId()]->GetChanDisplay(chanName)->hTraceBLRChan;
+            lis = traceBLRHist->GetListOfFunctions();
+            if(lis) lis->Delete(); // get rid of previous fit results
+            traceBLRHist->Fit(expFunc, "WCQF+", "", 800, 2995);
+            //fitPic->Pic(coords[8][0], coords[8][1])->AddH1(traceBLRHist);
+            //fitPic->Pic(coords[8][0], coords[8][1])->SetDrawOption("L");
+            //AddPicture(fitPic);
 
-                Double_t xint = fint->GetMinimumX();
-                std::cout << "Intersection point is " << xint << ", int value is " << linFunc->Eval(xint) << std::endl;
-                fPhysDisplay->hExpFitCrysBk->Fill(linFunc->Eval(xint));
-            }
+            fPhysDisplay->hExpFitCrysBk->Fill(expFunc->Eval(startRise));
+            fPhysDisplay->hDecayTimesCrysBk->Fill(expFunc->GetParameter(1));
         }
+**/
     }
 }
+#endif // TPLEIADES_FILL_TRACES
 
 //------------------------------------------------------------------------
+#ifdef TPLEIADES_FILL_TRACES
 void TPLEIADESPhysProc::ExpIntegPHRecon()
 {
     std::vector<Double_t> trace, traceBLR;
@@ -761,6 +790,7 @@ void TPLEIADESPhysProc::ExpIntegPHRecon()
         }
     }
 }
+#endif // TPLEIADES_FILL_TRACES
 
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

@@ -14,7 +14,6 @@
 
 #include "TPLEIADESRawProc.h"
 
-#include "stdint.h"
 #include "snprintf.h"
 #include "Riostream.h"
 
@@ -148,25 +147,28 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     UInt_t  l_only_one_hit_in_cha;      // y/n for just one hit in channel
     UInt_t  l_more_than_1_hit_in_cha;   // y/n for more than one hit
     UInt_t  l_hit_time_sign;    // bit for polarity of hit time relative to trigger
-     Int_t  l_hit_time;         // magnitude of hit time
+    Int_t   l_hit_time;          // magnitude of hit time
+
     UInt_t  l_hit_cha_id2;      // hit channel for FPGA energy
     //UInt_t  l_fpga_energy_sign; // bit for polarity of FPGA energy
-     Int_t  l_fpga_energy;      // magnitude of FPGA energy
-
-    UInt_t  l_pol_array      [MAX_SFP][MAX_SLAVE][N_CHA];   // array of polarities
-    UInt_t  l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if TRAPEZ energy found
-    UInt_t  l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if FPGA energy found
-    Int_t   l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of TRAPEZ energy
-    Int_t   l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of FPGA energy
-    Int_t   l_fpga_hitti     [MAX_SFP][MAX_SLAVE][N_CHA];   // array of hit time values from FPGA
-
-    UInt_t  l_dat_fir;          // word for first half of trace
-    UInt_t  l_dat_sec;          // word for second half of trace
+    Int_t  l_fpga_energy;       // magnitude of FPGA energy
+    Int_t   l_fpga_filt_on_off; // 4bit for checking if FPGA filter mode is on
+    //Int_t l_fpga_filt_mode;   // not used?
+    Int_t   l_dat_trace;        // word for storing trace used in FGPA filter
+    Int_t   l_dat_filt;         // word for storing FGPA filter
+    Int_t   l_filt_sign;        // polarity of FPGA filter for correction
 
     static UInt_t   l_evt_ct = 0;         // MBS event counter
     static UInt_t   l_evt_ct_phys = 0;  // physics event counter
 
     UInt_t  l_pol = 0;          // polarity of FEBEX cards
+    UInt_t  l_pol_array      [MAX_SFP][MAX_SLAVE][N_CHA];   // array of polarities
+    UInt_t  l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if FPGA energy found
+    Int_t   l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of FPGA energy
+    Int_t   l_fpga_hitti     [MAX_SFP][MAX_SLAVE][N_CHA];   // array of hit time values from FPGA
+
+    UInt_t  l_dat_fir;          // word for first half of trace
+    UInt_t  l_dat_sec;          // word for second half of trace
 
     UInt_t  l_bls_start = BASE_LINE_SUBT_START;     // start for trace baseline calculation
     UInt_t  l_bls_stop  = BASE_LINE_SUBT_START + BASE_LINE_SUBT_SIZE;       // stop for trace baseline calculation
@@ -176,34 +178,48 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     //------------------------------------------------------------------------
     // special function objects. only initialised if defined in header.
 
-    #ifdef TRAPEZ
-    Int_t   l_A1, l_A2;             // TRAPEZ filter counters
-    UInt_t  l_gap = TRAPEZ_N_GAP;   // TRAPEZ gap size
-    UInt_t  l_win = TRAPEZ_N_AVG;   // TRAPEZ window size
-    #endif // TRAPEZl_pol
+    #ifdef BIBOX
+    Int_t   l_A1, l_A2;             // BIBOX filter counters
+    UInt_t  l_gap = BIBOX_N_GAP;   // BIBOX gap size
+    UInt_t  l_win = BIBOX_N_AVG;   // BIBOX window size
+
+    UInt_t  l_bibox_e_found  [MAX_SFP][MAX_SLAVE][N_CHA];   // array of y/n if BIBOX energy found
+    Int_t   l_bibox_e        [MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of BIBOX energy
+    #endif // BIBOX
 
     #ifdef MWD
     UInt_t  l_mwd_wind = MWD_WIND;
     UInt_t  l_mwd_avg  = MWD_AVG;
-    Double_t    f_rev_tau = 1. / (Double_t) MWD_TAU;
-    Int_t   l_tau_sum=0;
-    //Double_t  f_tau_sum=0.;
-    Double_t    f_sum=0.;
-    Double_t    f_sum_e=0.;
-    #ifdef USE_MBS_PARAM
-        Double_t    f_mwd[MAX_TRACE_SIZE];
-        Double_t    f_avg[MAX_TRACE_SIZE];
-    #else
-        Double_t    f_mwd[TRACE_SIZE];
-        Double_t    f_avg[TRACE_SIZE];
-    #endif // USE_MBS_PARAM
-    #endif // MWD
+    //Double_t    f_rev_tau = 1. / (Double_t) MWD_TAU;  // i'm using an array of TAU's, so calling the macro directly
 
-    Int_t   l_fpga_filt_on_off; // 4bit for checking if FPGA filter mode is on
-    //Int_t l_fpga_filt_mode;   // not used?
-    Int_t   l_dat_trace;        // word for storing trace used in FGPA filter
-    Int_t   l_dat_filt;         // word for storing FGPA filter
-    Int_t   l_filt_sign;        // polarity of FPGA filter for correction
+    // because the preamps have different decay consts, we need to individually set the tau value
+    Double_t l_mwd_tau [MAX_SFP][MAX_SLAVE][N_CHA];
+    // I initialise the array with a non-zero standard value to prevent math errrors
+    for(int i=0; i<MAX_SFP; ++i) { for(int j=0; j<MAX_SLAVE; ++j) { std::fill(l_mwd_tau[i][j], l_mwd_tau[i][j] + N_CHA, 1538); } }
+    // now I initialise the specific values given by the exp decay fits
+    l_mwd_tau[1][0][1] = 1567.68;     l_mwd_tau[1][0][2] = 1472.25;     l_mwd_tau[1][0][9] = 1567.88;     l_mwd_tau[1][0][10] = 1558.63;
+    l_mwd_tau[1][1][1] = 1560.54;     l_mwd_tau[1][1][2] = 1559.62;     l_mwd_tau[1][1][9] = 1568.26;     l_mwd_tau[1][1][10] = 1565.76;
+    l_mwd_tau[1][2][1] = 1572.50;     l_mwd_tau[1][2][2] = 1565.66;     l_mwd_tau[1][3][1] = 1570.41;     l_mwd_tau[1][3][2]  = 1567.77;
+    l_mwd_tau[1][4][0] = 1101.10;     l_mwd_tau[1][4][1] = 1109.53;     l_mwd_tau[1][4][2] = 1117.12;     l_mwd_tau[1][4][3]  = 1111.86;
+    l_mwd_tau[1][4][4] = 1115.77;     l_mwd_tau[1][4][5] = 1111.08;     l_mwd_tau[1][4][12] = 2458.66;    l_mwd_tau[1][4][13] = 2484.18;
+
+    Int_t       l_diff_sum = 0;
+    Int_t       l_dint_sum = 0;
+    Double_t    l_cint_sum = 0.;
+
+    #ifdef USE_MBS_PARAM
+        Double_t    f_diff[MAX_TRACE_SIZE];
+        Double_t    f_corr[MAX_TRACE_SIZE];
+        Double_t    f_int[MAX_TRACE_SIZE];
+    #else
+        Double_t    f_diff[MAX_TRACE_SIZE];
+        Double_t    f_corr[MAX_TRACE_SIZE];
+        Double_t    f_int[MAX_TRACE_SIZE];
+    #endif // USE_MBS_PARAM
+
+    Int_t   l_mwd_e[MAX_SFP][MAX_SLAVE][N_CHA];   // array of magnitude of MWD energy
+
+    #endif // MWD
 
 
     //------------------------------------------------------------------------
@@ -331,32 +347,39 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
             {
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    h_trace       [l_i][l_j][l_k]->Reset ("");
-                    h_trace_blr   [l_i][l_j][l_k]->Reset ("");
-                    h_trapez_fpga [l_i][l_j][l_k]->Reset ("");
                     l_ch_hitpat   [l_i][l_j][l_k] = 0;
                     l_ch_hitpat_tr[l_i][l_j][l_k] = 0;
 
-                    #ifdef TRAPEZ
-                    h_trapez_f[l_i][l_j][l_k]->Reset ("");
-                    #endif // TRAPEZ
+                    l_fpga_e_found  [l_i][l_j][l_k] = 0;
+                    l_fpga_e        [l_i][l_j][l_k] = 0;
+
+                    h_trace       [l_i][l_j][l_k]->Reset ("");
+                    h_trace_blr   [l_i][l_j][l_k]->Reset ("");
+                    h_bibox_fpga  [l_i][l_j][l_k]->Reset ("");
+
+                    #ifdef BIBOX
+                    h_bibox_f[l_i][l_j][l_k]->Reset ("");
+                    l_bibox_e_found[l_i][l_j][l_k] = 0;
+                    l_bibox_e[l_i][l_j][l_k] = 0;
+                    #endif // BIBOX
 
                     #ifdef MWD
-                    h_mwd_f[l_i][l_j][l_k]->Reset ("");
-                    h_mwd_a[l_i][l_j][l_k]->Reset ("");
+                    h_mwd_d[l_i][l_j][l_k]->Reset ("");
+                    h_mwd_c[l_i][l_j][l_k]->Reset ("");
+                    h_mwd_i[l_i][l_j][l_k]->Reset ("");
+                    l_mwd_e[l_i][l_j][l_k] = 0;
                     for (l_l=0; l_l<l_tr_size; l_l++)
                     {
-                      f_mwd[l_l] = 0.;
-                      f_avg[l_l] = 0.;
+                      f_diff[l_l] = 0.;
+                      f_corr[l_l] = 0.;
+                      f_int[l_l] = 0.;
                     }
                     #endif // MWD
-                    l_trapez_e_found[l_i][l_j][l_k] = 0;
-                    l_fpga_e_found  [l_i][l_j][l_k] = 0;
-                    l_trapez_e      [l_i][l_j][l_k] = 0;
-                    l_fpga_e        [l_i][l_j][l_k] = 0;
                 }
+                #ifdef NIK_EXTRA_HISTS
                 h_hitpat   [l_i][l_j]->Fill (-2, 1);
                 h_hitpat_tr[l_i][l_j]->Fill (-2, 1);
+                #endif // NIK_EXTRA_HISTS
                 l_first_trace[l_i][l_j] = 0;
             }
         }
@@ -431,7 +454,9 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
                 if(l_trig_type_triva == 1) // physics event
                 {
+                    #ifdef NIK_EXTRA_HISTS
                     h_hitpat[l_sfp_id][l_feb_id]->Fill (-1, 1);
+                    #endif // NIK_EXTRA_HISTS
                     fOutEvent->fPhysTrigger = kTRUE;
 
                     for(l_i=0; l_i<l_n_hit; l_i++)  // stuff happens based on n_hits
@@ -466,10 +491,14 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                                 l_hit_time = l_hit_time * (-1); // negative := BEFORE trigger, relative to trigger time
                             }
                             //printf ("cha: %d, hit fpga time:  %d \n", l_hit_cha_id,  l_hit_time);
+                            #ifdef NIK_EXTRA_HISTS
                             h_trgti_hitti[l_sfp_id][l_feb_id][l_hit_cha_id]->Fill (l_hit_time);
+                            #endif // NIK_EXTRA_HISTS
                             l_fpga_hitti[l_sfp_id][l_feb_id][l_hit_cha_id] = l_hit_time;
                         }
+                        #ifdef NIK_EXTRA_HISTS
                         h_hitpat[l_sfp_id][l_feb_id]->Fill (l_hit_cha_id, l_n_hit_in_cha);	// fill hit pattern histogram
+                        #endif // NIK_EXTRA_HISTS
 
                         l_dat = *pl_tmp++;      // energy from fpga (+ other info)
                         l_hit_cha_id2  = (l_dat & 0xf0000000) >> 28;
@@ -533,22 +562,17 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     if(l_first_trace[l_sfp_id][l_feb_id] == 0)
                     {
                         l_first_trace[l_sfp_id][l_feb_id] = 1;
+                        #ifdef NIK_EXTRA_HISTS
                         h_hitpat_tr[l_sfp_id][l_feb_id]->Fill (-1, 1);
+                        #endif // NIK_EXTRA_HISTS
                     }
+                    #ifdef NIK_EXTRA_HISTS
                     h_hitpat_tr[l_sfp_id][l_feb_id]->Fill (l_cha_id, 1);
+                    #endif // NIK_EXTRA_HISTS
                     l_ch_hitpat_tr[l_sfp_id][l_feb_id][l_cha_id]++;
 
                     // now trace
                     l_trace_size = (l_cha_size/4) - 2;     // in longs/32bit
-
-                    //correct the following comments!
-                    //falls trace + filter trace: cuttoff at 2000 slices, since 4 times the amount of data!
-
-                    //if (l_trace_size != (TRACE_SIZE>>1))
-                    //{
-                    //  printf ("ERROR>> l_trace_size: %d \n", l_trace_size); fflush (stdout);
-                    //  goto bad_event;
-                    //}
 
                     //------------------------------------------------------------------------
                     // read out traces and fill histograms
@@ -581,8 +605,10 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                             h_trace[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l*2  +1, l_dat_fir);
                             h_trace[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l*2+1+1, l_dat_sec);
 
+                            #ifdef NIK_EXTRA_HISTS
                             h_adc_spect[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_dat_fir * ADC_RES - 1000.);
                             h_adc_spect[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_dat_sec * ADC_RES - 1000.);
+                            #endif // NIK_EXTRA_HISTS
 
                             l_tr[l_l*2]   = l_dat_fir;
                             l_tr[l_l*2+1] = l_dat_sec;
@@ -621,7 +647,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
                             // both trace and FGPA filter output are recorded this time
                             h_trace      [l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, l_dat_trace);
-                            h_trapez_fpga[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, l_dat_filt);
+                            h_bibox_fpga[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, l_dat_filt);
 
                             l_tr[l_l] = l_dat_trace;
                         }
@@ -643,9 +669,21 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                         //h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, f_tr_blr[l_l]);
                     }
 
+                    // fit exp function to trace
+                    #ifdef DEC_CONST_FIT
+                    //std::cout << "### Fit for FEB " << l_feb_id << ", CHAN " << l_cha_id << ": " << std::endl;
+                    TF1 *fitFunc = new TF1("expoFitFunc", "[0]*exp(-[1]*x)", 0, 3000);
+                    fitFunc->SetParameters(2e3, 1e-3);
+                    h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->Fit("expoFitFunc", "Q", "", 900, 2995);
+                    TF1 *fitDecayConst = h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetFunction("expoFitFunc");
+                    Double_t fitTau = fitDecayConst->GetParameter(1);
+                    h_trace_blr_fit[l_sfp_id][l_feb_id][l_cha_id]->Fill(fitTau);
+                    //std::cout << std::endl;
+                    #endif // DEC_CONST_FIT
+
                     //------------------------------------------------------------------------
-                    // run TRAPEZ filter on trace and fill histograms
-                    #ifdef TRAPEZ
+                    // run BIBOX filter on trace and fill histograms
+                    #ifdef BIBOX
                     l_A1 = 0;
                     l_A2 = 0;
                     for(l_l=(l_gap+l_win); l_l<l_trace_size; l_l++)   // loop over traces
@@ -658,87 +696,81 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                             //printf ("index: %d, A1: %d, A2 %d, A1-A2: %d, norm %d  \n", l_l, l_A1, l_A2, l_A1-l_A2, l_win);
                             //printf ("(A1-A2)/norm: %d, %f \n", (l_A1 - l_A2) / l_win, (Real_t)(l_A1 - l_A2) / (Real_t) l_win);
                         }
-                        else    // now full window on screen, fill evaluate TRAPEZ and fill hist
+                        else    // now full window on screen, fill evaluate BIBOX and fill hist
                         {
                             l_A1 += l_tr[l_l]  - l_tr[l_l-l_win];
                             l_A2 += l_tr[l_l-l_win-l_gap] - l_tr[l_l-(2*l_win)-l_gap];
 
                             if(l_l < (l_trace_size -(2*l_win)-l_gap))
                             {
-                                //h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2) / (Real_t) l_win);
-                                //h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
+                                //h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2) / (Real_t) l_win);
+                                //h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
                             }
                         }
                         // NB: Nik chose not to fill the histo if both windows weren't on trace.
-                        // I'm plotting trapez for full range, and hoping that l_A2 is zero when not on screen.
-                        h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
+                        // I'm plotting bibox for full range, and hoping that l_A2 is zero when not on screen.
+                        h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
                     }
-                    //printf ("next trace \n\n\n\n");
-                    //sleep (1);
-                    #endif // TRAPEZ
 
-                    // find peaks and valleys in trace and fill histogram
-                    h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
-                    h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum());
-
-                    #ifdef TRAPEZ       // determine energy and fill histograms from TRAPEZ filter
+                    // determine energy and fill histograms from BIBOX filter
                     if(l_pol == 1) // negative signals
                     {
-                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1));
-                        l_trapez_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
-                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);
+                        h_bibox_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1));
+                        l_bibox_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
+                        l_bibox_e[l_sfp_id][l_feb_id][l_cha_id] = h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);
                     }
                     if(l_pol == 0) // positive signals
                     {
-                        h_trapez_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
-                        l_trapez_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
-                        l_trapez_e[l_sfp_id][l_feb_id][l_cha_id] = h_trapez_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();
+                        h_bibox_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
+                        l_bibox_e_found [l_sfp_id][l_feb_id][l_cha_id] = 1;
+                        l_bibox_e[l_sfp_id][l_feb_id][l_cha_id] = h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();
                     }
-                    #endif // TRAPEZ
+                    #endif // BIBOX
 
                     //------------------------------------------------------------------------
                     // run MWD filter on trace and fill histograms
                     #ifdef MWD
-                    l_tau_sum = 0;
-                    for(l_l=1; l_l<l_mwd_wind; l_l++)
+                    l_diff_sum = l_dint_sum = 0; l_cint_sum = 0.;
+                    for(l_l=1; l_l<l_mwd_wind; l_l++)       // accumulate sum to start window
                     {
-                        l_tau_sum += f_tr_blr[l_mwd_wind - l_l];
+                        l_diff_sum += f_tr_blr[l_l];
                     }
 
-                    f_sum = 0.;
                     for(l_l=l_mwd_wind; l_l<l_trace_size; l_l++)   // mwd
                     {
-                        f_sum =  f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];
-                        f_sum += (f_rev_tau * (Double_t)l_tau_sum);
-                        f_mwd[l_l] = f_sum;
+                        f_diff[l_l] =  f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];      // differentiation function
+                        f_corr[l_l] = ((Double_t)l_diff_sum / l_mwd_tau[l_sfp_id][l_feb_id][l_cha_id]);  // pole zero correction
 
-                        h_mwd_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_sum);
+                        l_dint_sum += f_diff[l_l] - f_diff[l_l - l_mwd_avg];            // integration sum for diff func
+                        l_cint_sum += f_corr[l_l] - f_corr[l_l - l_mwd_avg];            // integration sum for corr func
+                        f_int[l_l]  = (l_dint_sum + l_cint_sum) / l_mwd_avg;            // integration/low-pass filter function
 
-                        // correct f_tau_sum for next index
-                        l_tau_sum += f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];
-                    }
+                        h_mwd_d[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_diff[l_l]);
+                        h_mwd_c[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_corr[l_l]);
+                        h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_int[l_l]);
 
-                    f_sum_e = 0.;
-                    for(l_l=l_mwd_wind; l_l<l_trace_size; l_l++) // averaging
-                    {
-                        f_sum_e += f_mwd[l_l] - f_mwd[l_l - l_mwd_avg];
-                        if(l_l>(l_mwd_wind+l_mwd_avg))
-                        {
-                            f_avg[l_l] = f_sum_e/(Double_t)l_mwd_avg;
-                            h_mwd_a[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_avg[l_l]);
-                        }
+                        // correct l_diff_sum for next index
+                        l_diff_sum += f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];
                     }
 
                     // fill energy histograms for MWD from peaks/valleys
                     if(l_pol == 1) // negative signals
                     {
-                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_a[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
+                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum());
+                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);
                     }
                     if(l_pol == 0) // positive signals
                     {
-                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_a[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
+                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
+                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();
                     }
                     #endif // MWD
+
+                    #ifdef NIK_EXTRA_HISTS
+                    // find peaks and valleys in trace and fill histogram
+                    h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
+                    h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum());
+                    #endif // NIK_EXTRA_HISTS
                 }
 
                 // jump over trace
@@ -776,19 +808,23 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
             {
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
+                    #ifdef NIK_EXTRA_HISTS
                     h_ch_hitpat   [l_i][l_j][l_k]->Fill (l_ch_hitpat   [l_i][l_j][l_k]);
                     h_ch_hitpat_tr[l_i][l_j][l_k]->Fill (l_ch_hitpat_tr[l_i][l_j][l_k]);
+                    #endif // NIK_EXTRA_HISTS
 
-                    if( (l_trapez_e_found[l_i][l_j][l_k] == 1) && (l_fpga_e_found[l_i][l_j][l_k] == 1))
+                    #ifdef BIBOX
+                    if( (l_bibox_e_found[l_i][l_j][l_k] == 1) && (l_fpga_e_found[l_i][l_j][l_k] == 1))
                     {
                         l_value=0;
-                        if(l_trapez_e[l_i][l_j][l_k])
+                        if(l_bibox_e[l_i][l_j][l_k])
                         {
-                            l_value=(Double_t)l_fpga_e[l_i][l_j][l_k] / (Double_t)l_trapez_e[l_i][l_j][l_k];
+                            l_value=(Double_t)l_fpga_e[l_i][l_j][l_k] / (Double_t)l_bibox_e[l_i][l_j][l_k];
                         }
-                        h_corr_e_fpga_trapez[l_i][l_j][l_k]->Fill(l_value);
+                        h_corr_e_fpga_bibox[l_i][l_j][l_k]->Fill(l_value);
                         //printf ("Energy FPGA / Energy Trace: %1.10f \n",l_value);
                     }
+                    #endif // BIBOX
                 }
             }
         }
@@ -820,11 +856,21 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 {
                     TPLEIADESFebChannel* theChannel = theBoard->GetChannel(l_k);
 
+                    // MBS values
                     theChannel->fRPolarity = l_pol_array[l_i][l_j][l_k];
                     theChannel->fRHitMultiplicity = l_ch_hitpat[l_i][l_j][l_k];
+
+                    // FPGA values
                     theChannel->fRFPGAEnergy = l_fpga_e[l_i][l_j][l_k];
                     theChannel->fRFPGAHitTime = l_fpga_hitti[l_i][l_j][l_k];
+                    /* // this is supposed to record the FPGA BIBOX output, but it doesn't work for the test data for some reason
+                    for(int bin=1; bin<=h_bibox_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    {
+                        l_value=h_bibox_fpga[l_i][l_j][l_k]->GetBinContent(bin);
+                        theChannel->fRFPGABIBOX.push_back(l_value);
+                    } */
 
+                    // traces
                     #ifdef TPLEIADES_FILL_TRACES
                     for(int bin=1; bin<=h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
@@ -838,24 +884,33 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                         theChannel->fRTraceBLR.push_back(l_value);
                     }
 
-                    for(int bin=1; bin<=h_trapez_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    #ifdef BIBOX
+                    for(int bin=1; bin<=h_bibox_f[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
-                        l_value=h_trapez_f[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fRTraceTRAPEZ.push_back(l_value);
+                        l_value=h_bibox_f[l_i][l_j][l_k]->GetBinContent(bin);
+                        theChannel->fRBIBOXTrace.push_back(l_value);
                     }
+                    theChannel->fRBIBOXEnergy = l_bibox_e[l_i][l_j][l_k];
+                    #endif // BIBOX
 
-                    theChannel->fRTrapezEnergy = l_trapez_e[l_i][l_j][l_k];
-
-                    for(int bin=1; bin<=h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+                    #ifdef MWD
+                    for(int bin=1; bin<=h_mwd_i[l_i][l_j][l_k]->GetNbinsX(); ++bin)
                     {
-                        l_value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-                        theChannel->fRFPGATRAPEZ.push_back(l_value);
+                        l_value=h_mwd_i[l_i][l_j][l_k]->GetBinContent(bin);
+                        theChannel->fRMWDTrace.push_back(l_value);
                     }
+                    theChannel->fRMWDEnergy = l_mwd_e[l_i][l_j][l_k];
+                    #endif // MWD
                     #endif // TPLEIADES_FILL_TRACES
                 }
             }
         }
     }
+
+    #ifdef BIBOX
+    if(l_bibox_e[1][0][7] > 4000) { fOutEvent->fPulserTrigger = kTRUE; } else  { fOutEvent->fPulserTrigger = kFALSE; }  // does empty channel have pulser?
+    #endif // BIBOX
+
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
     bad_event:
@@ -900,7 +955,7 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
     fflush (stdout);
     #else
     l_tra_size   = TRACE_SIZE;
-    l_trap_n_avg = TRAPEZ_N_AVG;
+    l_trap_n_avg = BIBOX_N_AVG;
     #endif // USE_MBS_PARAM
 
     // set trace size value in parameter
@@ -932,37 +987,75 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
                     h_trace_blr[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
-                #ifdef TRAPEZ
+                #ifdef DEC_CONST_FIT
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TPLEIADESRawProc/TRAPEZ/TRAPEZ Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"TRAPEZ Filter");
-                    h_trapez_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+                    sprintf(chis,"TPLEIADESRawProc/Traces BLR Fit/TRACE Exp Fit - Decay Const SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"Trace BLR Decay Const");
+                    h_trace_blr_fit[l_i][l_j][l_k] = MakeTH1('F', chis,chead, 2e5, -1e-2, 1e-2);
+                }
+                #endif // DEC_CONST_FIT
+
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA Energy(hitlist)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"FPGA Energy");
+                    //h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*BIBOX_N_AVG,0x1000*BIBOX_N_AVG);
+                    h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x10000,-2000000,2000000);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TPLEIADESRawProc/TRAPEZ Energy/TRAPEZ Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"Energy");
-                    //h_trapez_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*TRAPEZ_N_AVG,0x1000*TRAPEZ_N_AVG);
-                    //h_trapez_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-2000000,2000000);
-                    h_trapez_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-200000,200000);
+                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA BIBOX   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"FPGA BIBOX");
+                    h_bibox_fpga[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
-                #endif // TRAPEZ
+
+                #ifdef BIBOX
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/BIBOX/BIBOX Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"BIBOX Filter");
+                    h_bibox_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+                }
+
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/BIBOX Energy/BIBOX Energy   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"Energy");
+                    //h_bibox_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*BIBOX_N_AVG,0x1000*BIBOX_N_AVG);
+                    //h_bibox_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-2000000,2000000);
+                    h_bibox_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x20000,-200000,200000);
+                }
+
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/E_CORR/Energy(hitlist) vs BIBOX Energy  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"(FPGA Energy)/(BIBOX Energy)");
+                    h_corr_e_fpga_bibox[l_i][l_j][l_k] = MakeTH1('F', chis,chead,2000,0.999,1.001);
+                }
+                #endif // BIBOX
 
                 #ifdef MWD
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TPLEIADESRawProc/MWD Filter/MWD Filter  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chis,"TPLEIADESRawProc/MWD Differentiated/MWD Differentiated  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"MWD Filter");
-                    h_mwd_f[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+                    h_mwd_d[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
-                    sprintf(chis,"TPLEIADESRawProc/MWD Average/MWD Average  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"MWD Average");
-                    h_mwd_a[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+                    sprintf(chis,"TPLEIADESRawProc/MWD Pole Zero Correction/MWD Pole Zero Correction  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"MWD Filter");
+                    h_mwd_c[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+                }
+
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/MWD Integrated/MWD Integrated  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"MWD Integration");
+                    h_mwd_i[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
                 }
 
                 for(l_k=0; l_k<N_CHA; l_k++)
@@ -973,42 +1066,7 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
                 }
                 #endif // MWD
 
-                for(l_k=0; l_k<N_CHA; l_k++)
-                {
-                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA Trapez   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"FPGA Trapez");
-                    h_trapez_fpga[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
-                }
-
-                for(l_k=0; l_k<N_CHA; l_k++)
-                {
-                    sprintf(chis,"TPLEIADESRawProc/FPGA/FPGA Energy(hitlist)  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"FPGA Energy");
-                    //h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,(-1)*0x1000*TRAPEZ_N_AVG,0x1000*TRAPEZ_N_AVG);
-                    h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x10000,-2000000,2000000);
-                }
-
-                for(l_k=0; l_k<N_CHA; l_k++)
-                {
-                    sprintf(chis,"TPLEIADESRawProc/E_CORR/Energy(hitlist) vs TRAPEZ Energy  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"(FPGA Energy)/(TRAPEZ Energy)");
-                    h_corr_e_fpga_trapez[l_i][l_j][l_k] = MakeTH1('F', chis,chead,2000,0.999,1.001);
-                }
-
-                for (l_k=0; l_k<N_CHA; l_k++)
-                {
-                    sprintf(chis,"TPLEIADESRawProc/Peaks/PEAK   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"Peak");
-                    h_peak[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
-                }
-
-                for(l_k=0; l_k<N_CHA; l_k++)
-                {
-                    sprintf(chis,"TPLEIADESRawProc/Valleys/VALLEY   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-                    sprintf(chead,"Valley");
-                    h_valley[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
-                }
-
+                #ifdef NIK_EXTRA_HISTS
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
                     sprintf(chis,"TPLEIADESRawProc/Timediff/Trigger time - Hit time   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
@@ -1049,12 +1107,27 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
                 sprintf(chead,"Hitpat_Trace");
                 h_hitpat_di[l_i][l_j] = MakeTH1('I', chis,chead,20,-2,18);
 
+                for (l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/Peaks/PEAK   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"Peak");
+                    h_peak[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
+                }
+
+                for(l_k=0; l_k<N_CHA; l_k++)
+                {
+                    sprintf(chis,"TPLEIADESRawProc/Valleys/VALLEY   SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                    sprintf(chead,"Valley");
+                    h_valley[l_i][l_j][l_k] = MakeTH1('I', chis,chead,0x1000,0,0x4000);
+                }
+
                 for(l_k=0; l_k<N_CHA; l_k++)
                 {
                     sprintf(chis,"TPLEIADESRawProc/ADC_Spectra/ADC Spectrum [mV]  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
                     sprintf(chead,"ADC Spectrum");
                     h_adc_spect[l_i][l_j][l_k] = MakeTH1('D', chis,chead,16384,-1000,1000);
                 }
+                #endif // NIK_EXTRA_HISTS
             }
         }
     }

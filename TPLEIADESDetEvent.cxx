@@ -45,14 +45,16 @@ void TPLEIADESDetChan::Clear(Option_t *opt)
     fDHitMultiplicity = 0;
     fDFPGAEnergy = 0;
     fDFPGAHitTime = 0;
-    fDFPGATRAPEZ.clear();
+    fDFPGABIBOX.clear();
 
     /** FEBEX trace properties **/
     #ifdef TPLEIADES_FILL_TRACES
-    fDTrapezEnergy = 0;
     fDTrace.clear();
     fDTraceBLR.clear();
-    fDTraceTRAPEZ.clear();
+    fDBIBOXEnergy = 0;
+    fDBIBOXTrace.clear();
+    fDMWDEnergy = 0;
+    fDMWDTrace.clear();
     #endif
 }
 

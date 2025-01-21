@@ -35,7 +35,6 @@ void set_PLEIADESParam()
     // code for channel map is a 12 bit word: bit 9,8 are for SFP, bit 7-4 are for Board slot, bit 3-0 are for channel position.
     // for fpSideMap, beacuse p-sides are plugged in via 16-ch ribbon cables (and thus must come in order), only first pos is listed.
 
-
     param0->fDetNameVec.clear(); // JAM 27-06-2024: remove previous names, otherwise we duplicate the elements for each submit...
     //----- Slot 1 -----
     TString s1name = "slot1_MSPad_17A";
@@ -95,11 +94,11 @@ void set_PLEIADESParam()
     param0->fpSideMap[s9name] = 0x128;      // slot 8 p-side goes to card 2, ch 8-15
     param0->fnSideMap[s9name] = 0x147;      // slot 9 n-side goes to card 4, ch 7    */
     //----- Slot BP -----
-    TString sBPname = "slotBP_Crys_GAGG";
+    TString sBPname = "slotBP_Crys_BGO";
     param0->fDetNameVec.push_back(sBPname); // add detector to named list
     param0->fDetTypeMap[sBPname] = "Crystal"; // define detector type
     // for Crystal, front should go to 0, back to 1
-    param0->fCrystalMap[0] = 0x14E;         // BP pin1 goes to card 4, ch 12
-    param0->fCrystalMap[1] = 0x14F;         // BP pin2 goes to card 4, ch 13
+    param0->fCrystalMap[0] = 0x14C;         // BP pin1 goes to card 4, ch 12
+    param0->fCrystalMap[1] = 0x14D;         // BP pin2 goes to card 4, ch 13
 
 }

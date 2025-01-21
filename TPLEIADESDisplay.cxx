@@ -112,7 +112,7 @@ void TPLEIADESDetDisplay::InitDisplay()
 
         modname.Form("TPLEIADESDetProc/%s/%s Energy Pattern", detname.Data(), detname.Data());
         modhead.Form("%s Energy Pattern", detname.Data());
-        hDetEnergyPattern = MakeTH2('D', modname, modhead, 8, -0.5, 7.5, 4e3, -2e5, 2e5);
+        hDetEnergyPattern = MakeTH2('D', modname, modhead, 8, -0.5, 7.5, 1e3, 0, 1e6);
         for(short i=0; i<7; ++i) { modname.Form("p-strip %d", i); hDetEnergyPattern->GetXaxis()->SetBinLabel(i+1, modname.Data()); }
         hDetEnergyPattern->GetXaxis()->SetBinLabel(8, "n-side");
     }
@@ -194,9 +194,17 @@ void TPLEIADESChanDisplay::InitDisplay()
     modhead.Form("%s Trace BLR", detname.Data());
     hTraceBLRChan = MakeTH1('D', modname, modhead, lTraceSize, 0, lTraceSize);
 
-    modname.Form("TPLEIADESDetProc/%s/Channel Trace TRAPEZ/%s Trace TRAPEZ", detname.Data(), chname.Data());
-    modhead.Form("%s Trace TRAPEZ", detname.Data());
-    hTraceTRAPEZChan = MakeTH1('D', modname, modhead, lTraceSize, 0, lTraceSize);
+    #ifdef BIBOX
+    modname.Form("TPLEIADESDetProc/%s/Channel BIBOX Filter/%s BIBOX Filter", detname.Data(), chname.Data());
+    modhead.Form("%s BIBOX Filter", detname.Data());
+    hBIBOXFiltChan = MakeTH1('D', modname, modhead, lTraceSize, 0, lTraceSize);
+    #endif // BIBOX
+
+    #ifdef MWD
+    modname.Form("TPLEIADESDetProc/%s/Channel MWD Filter/%s MWD Filter", detname.Data(), chname.Data());
+    modhead.Form("%s MWD Filter", detname.Data());
+    hMWDFiltChan = MakeTH1('D', modname, modhead, lTraceSize, 0, lTraceSize);
+    #endif // MWD
     #endif // TPLEIADES_FILL_TRACES
 }
 
@@ -207,16 +215,25 @@ void TPLEIADESChanDisplay::FillTraces()
         TGo4Log::Error("TPLEIADESChanDisplay::FillTraces - trace size from fPar does not match hTrace bin length. Histogram misconfigured!");
     }
 
+    #ifdef TPLEIADES_FILL_TRACES
     for(uint i=0; i<fChannel->fDTrace.size(); ++i)
     {
         hTraceChan->SetBinContent(i, fChannel->fDTrace[i]);
         hTraceBLRChan->SetBinContent(i, fChannel->fDTraceBLR[i]);
-        hTraceTRAPEZChan->SetBinContent(i, fChannel->fDTraceTRAPEZ[i]);
+
+        #ifdef BIBOX
+        hBIBOXFiltChan->SetBinContent(i, fChannel->fDBIBOXTrace[i]);
+        #endif // BIBOX
+
+        #ifdef MWD
+        hMWDFiltChan->SetBinContent(i, fChannel->fDMWDTrace[i]);
+        #endif // MWD
     }
+    #endif // TPLEIADES_FILL_TRACES
 }
 
 //------------------------------------------------------------------------
-// TPLEIADESPhysDisplay is the container for holding Physics Processing histograms
+// TPLEIAD // TPLEIADES_FILL_TRACESESPhysDisplay is the container for holding Physics Processing histograms
 //------------------------------------------------------------------------
 
 TPLEIADESPhysDisplay::TPLEIADESPhysDisplay() :
@@ -250,6 +267,10 @@ void TPLEIADESPhysDisplay::InitClipStatsHists(TPLEIADESDetEvent* fInEvent)
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Clipping/%s n side RTtC", dname.Data());
             modhead.Form("Rise Time to Clipping - %s n side", dname.Data());
             hRiseTimeNSides.push_back(MakeTH1('I', modname, modhead, 150, 0, 300));
+
+            modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Peak/%s 2nd p side RTtP", dname.Data());
+            modhead.Form("Rise Time to Peak - %s 2nd p side", dname.Data());
+            hRiseTimePSides.push_back(MakeTH1('I', modname, modhead, 150, 0, 300));
 
             modname.Form("TPLEIADESPhysProc/Clipping Statistics/Rise Time to Reentry/%s n side RTtR", dname.Data());
             modhead.Form("Rise Time to Reentry - %s n side", dname.Data());
@@ -337,11 +358,11 @@ void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
             modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1000", dname.Data());      modhead[1].Form("Time Over Threshold 1000 - %s n side", dname.Data());
             modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/%s n side TOT 1500", dname.Data());      modhead[2].Form("Time Over Threshold 1500 - %s n side", dname.Data());
             hTOThreshNSides.push_back( { MakeTH1('I', modname[0], modhead[0], 1e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 1e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 1e3, 0, 2e3) } );
-            /**
+
             modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/%s n side EF", dname.Data());
             modhead[0].Form("Exp Fit - %s n side", dname.Data());
             hExpFitNSides.push_back(MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3));
-            **/
+
             modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/%s n side Conservative Integ", dname.Data());    modhead[0].Form("Conservative Exp Integral - %s n side", dname.Data());
             modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/%s n side Individual Integ", dname.Data());      modhead[1].Form("Individual Exp Integral - %s n side", dname.Data());
             hExpIntegNSides.push_back( { MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e6), MakeTH1('I', modname[1], modhead[1], 5e3, 0, 5e6) } );
@@ -356,14 +377,14 @@ void TPLEIADESPhysDisplay::InitPHReconHists(TPLEIADESDetEvent* fInEvent)
     modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1400");      modhead[1].Form("Time Over Threshold 1400 - Crys Back");
     modname[2].Form("TPLEIADESPhysProc/Pulse Height Recon/Time Over Threshold/Crystal Back TOT 1800");      modhead[2].Form("Time Over Threshold 1800 - Crys Back");
     hTOThreshCrysBk = { MakeTH1('I', modname[0], modhead[0], 2e3, 0, 2e3), MakeTH1('I', modname[1], modhead[1], 2e3, 0, 2e3), MakeTH1('I', modname[2], modhead[2], 2e3, 0, 2e3) };
-    /**
+
     modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/Crystal Front EF");
     modhead[0].Form("Exp Fit - Crys Front");
     hExpFitCrysFr = MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3);
     modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Fit/Crystal Back EF");
     modhead[0].Form("Exp Fit - Crys Back");
     hExpFitCrysBk = MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e3);
-    **/
+
     modname[0].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Front Conservative Integ");  modhead[0].Form("Conservative Exp Integral - Crys Front");
     modname[1].Form("TPLEIADESPhysProc/Pulse Height Recon/Exp Integral/Crystal Front Individual Integ");    modhead[1].Form("Individual Exp Integral - Crys Front");
     hExpIntegCrysFr = { MakeTH1('I', modname[0], modhead[0], 5e3, 0, 5e6), MakeTH1('I', modname[1], modhead[1], 5e3, 0, 5e6) };
