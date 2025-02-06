@@ -666,7 +666,6 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     {
                         f_tr_blr[l_l] =  (Double_t)l_tr[l_l] - f_bls_val;
                         h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_tr_blr[l_l] * ADC_RES);
-                        //h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->SetBinContent (l_l+1, f_tr_blr[l_l]);
                     }
 
                     // fit exp function to trace
@@ -709,7 +708,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                         }
                         // NB: Nik chose not to fill the histo if both windows weren't on trace.
                         // I'm plotting bibox for full range, and hoping that l_A2 is zero when not on screen.
-                        h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Real_t)(l_A1 - l_A2));
+                        h_bibox_f[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, (Double_t)(l_A1 - l_A2) / (Double_t)l_win * ADC_RES);
                     }
 
                     // determine energy and fill histograms from BIBOX filter
@@ -731,38 +730,61 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                     // run MWD filter on trace and fill histograms
                     #ifdef MWD
                     l_diff_sum = l_dint_sum = 0; l_cint_sum = 0.;
-                    for(l_l=1; l_l<l_mwd_wind; l_l++)       // accumulate sum to start window
+                    for(l_l=1; l_l<l_mwd_avg; ++l_l)       // accumulate sum to start window
                     {
-                        l_diff_sum += f_tr_blr[l_l];
-                    }
-
-                    for(l_l=l_mwd_wind; l_l<l_trace_size; l_l++)   // mwd
-                    {
-                        f_diff[l_l] =  f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];      // differentiation function
+                        f_diff[l_l] =  f_tr_blr[l_l] * ADC_RES;       // differentiation function
                         f_corr[l_l] = ((Double_t)l_diff_sum / l_mwd_tau[l_sfp_id][l_feb_id][l_cha_id]);  // pole zero correction
+                        l_diff_sum += f_diff[l_l];          // correct l_diff_sum for next index
 
-                        l_dint_sum += f_diff[l_l] - f_diff[l_l - l_mwd_avg];            // integration sum for diff func
-                        l_cint_sum += f_corr[l_l] - f_corr[l_l - l_mwd_avg];            // integration sum for corr func
-                        f_int[l_l]  = (l_dint_sum + l_cint_sum) / l_mwd_avg;            // integration/low-pass filter function
+                        l_dint_sum += f_diff[l_l];          // accumulate f_diff for integration sum
+                        l_cint_sum += f_corr[l_l];          // accumulate f_corr for integration sum
+                        f_int[l_l]  = (l_dint_sum + l_cint_sum) / l_mwd_avg;        // integration/low-pass filter function
 
                         h_mwd_d[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_diff[l_l]);
                         h_mwd_c[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_corr[l_l]);
                         h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_int[l_l]);
+                    }
 
-                        // correct l_diff_sum for next index
-                        l_diff_sum += f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind];
+                    for(l_l=l_mwd_avg; l_l<l_mwd_wind; ++l_l)       // accumulate sum to start window
+                    {
+                        f_diff[l_l] =  f_tr_blr[l_l] * ADC_RES;       // differentiation function
+                        f_corr[l_l] = ((Double_t)l_diff_sum / l_mwd_tau[l_sfp_id][l_feb_id][l_cha_id]);  // pole zero correction
+                        l_diff_sum += f_diff[l_l];          // correct l_diff_sum for next index
+
+                        l_dint_sum += f_diff[l_l] - f_diff[l_l - l_mwd_avg];    // integration sum for diff func
+                        l_cint_sum += f_corr[l_l] - f_corr[l_l - l_mwd_avg];    // integration sum for corr func
+                        f_int[l_l]  = (l_dint_sum + l_cint_sum) / l_mwd_avg;        // integration/low-pass filter function
+
+                        h_mwd_d[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_diff[l_l]);
+                        h_mwd_c[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_corr[l_l]);
+                        h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_int[l_l]);
+                    }
+
+                    for(l_l=l_mwd_wind; l_l<l_trace_size; ++l_l)    // process full filter once accumulation completed
+                    {
+                        f_diff[l_l] =  (f_tr_blr[l_l] - f_tr_blr[l_l - l_mwd_wind]) * ADC_RES;      // differentiation function
+                        f_corr[l_l] = ((Double_t)l_diff_sum / l_mwd_tau[l_sfp_id][l_feb_id][l_cha_id]);  // pole zero correction
+                        l_diff_sum += f_diff[l_l];       // correct l_diff_sum for next index
+
+                        l_dint_sum += f_diff[l_l] - f_diff[l_l - l_mwd_avg];    // integration sum for diff func
+                        l_cint_sum += f_corr[l_l] - f_corr[l_l - l_mwd_avg];    // integration sum for corr func
+                        f_int[l_l]  = (l_dint_sum + l_cint_sum) / l_mwd_avg;    // integration/low-pass filter function
+
+                        h_mwd_d[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_diff[l_l]);
+                        h_mwd_c[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_corr[l_l]);
+                        h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->Fill (l_l, f_int[l_l]);
                     }
 
                     // fill energy histograms for MWD from peaks/valleys
                     if(l_pol == 1) // negative signals
                     {
-                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum());
-                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);
+                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1));     //GetBinContent(MWD_SAMP) * (-1));
+                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum() * (-1);         //GetBinContent(MWD_SAMP) * (-1);
                     }
                     if(l_pol == 0) // positive signals
                     {
-                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());
-                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();
+                        h_mwd_e[l_sfp_id][l_feb_id][l_cha_id]->Fill(h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum());     //GetBinContent(MWD_SAMP));
+                        l_mwd_e[l_sfp_id][l_feb_id][l_cha_id] = h_mwd_i[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum();         //GetBinContent(MWD_SAMP);
                     }
                     #endif // MWD
 

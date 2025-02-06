@@ -71,14 +71,15 @@
 #define BASE_LINE_SUBT_SIZE   20
 
 #ifdef BIBOX
-    #define BIBOX_N_GAP  200
-    #define BIBOX_N_AVG  100
+    #define BIBOX_N_GAP  4
+    #define BIBOX_N_AVG  8
 #endif // BIBOX
 
 #ifdef MWD
-    #define MWD_WIND   400
-    #define MWD_AVG    350   // MWD_WIND must be bigger than MWD_AVG
-    //#define MWD_TAU    1538   // now defined on line 189 of TPLEIADESRawProc.cxx due to multiple values needed
+    #define MWD_WIND    400      // difference length, i.e. width of moving window
+    #define MWD_AVG     300      // integration length, i.e. width of low-pass filter. NB: MWD_WIND must be bigger than MWD_AVG
+    //#define MWD_TAU    1538   // decay constant for pole-zero correction. now defined on line 189 of TPLEIADESRawProc.cxx due to multiple values needed
+    #define MWD_SAMP    570     // sampling point, i.e. bin from which filter is sampled. Should be within the flat top, which ends at MWD_WIND + MWD_AVG.
 #endif // MWD
 
 #define RON  "\x1B[7m"
