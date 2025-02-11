@@ -112,7 +112,7 @@ void TPLEIADESDetDisplay::InitDisplay()
 
         modname.Form("TPLEIADESDetProc/%s/%s Energy Pattern", detname.Data(), detname.Data());
         modhead.Form("%s Energy Pattern", detname.Data());
-        hDetEnergyPattern = MakeTH2('D', modname, modhead, 8, -0.5, 7.5, 1e3, 0, 1e6);
+        hDetEnergyPattern = MakeTH2('D', modname, modhead, 8, -0.5, 7.5, 1e3, 0, 1500);
         for(short i=0; i<7; ++i) { modname.Form("p-strip %d", i); hDetEnergyPattern->GetXaxis()->SetBinLabel(i+1, modname.Data()); }
         hDetEnergyPattern->GetXaxis()->SetBinLabel(8, "n-side");
     }

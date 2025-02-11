@@ -42,8 +42,8 @@ class TPLEIADESDetPhysics: public TGo4EventElement
         TString GetDetType() { return fDetType; }
 
         /** physics properties of detector **/
-        Double_t fpFPGAEnergy = -99;    Double_t fpBIBOXEnergy = -99;  Double_t  fpTraceIntEnergy = -99;   Double_t  fpExpFitIntEnergy = -99;
-        Double_t fnFPGAEnergy = -99;    Double_t fnBIBOXEnergy = -99;  Double_t  fnTraceIntEnergy = -99;   Double_t  fnExpFitIntEnergy = -99;
+        Double_t fpFPGAEnergy = -99;    Double_t fpBIBOXEnergy = -99;   Double_t fpMWDEnergy = -99;   Double_t  fpTraceIntEnergy = -99;   Double_t  fpExpFitIntEnergy = -99;
+        Double_t fnFPGAEnergy = -99;    Double_t fnBIBOXEnergy = -99;   Double_t fnMWDEnergy = -99;   Double_t  fnTraceIntEnergy = -99;   Double_t  fnExpFitIntEnergy = -99;
         Double_t fNormPosX = -99;       Double_t fNormPosY = -99;
         Bool_t fPulser = kFALSE;
 

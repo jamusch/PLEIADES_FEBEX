@@ -47,7 +47,7 @@
 //#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
 #define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
 
-#define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
+#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC
 
 #ifdef USE_MBS_PARAM
     #define MAX_TRACE_SIZE   8000   // in samples
@@ -71,8 +71,8 @@
 #define BASE_LINE_SUBT_SIZE   20
 
 #ifdef BIBOX
-    #define BIBOX_N_GAP  4
-    #define BIBOX_N_AVG  8
+    #define BIBOX_N_GAP  200
+    #define BIBOX_N_AVG  100
 #endif // BIBOX
 
 #ifdef MWD

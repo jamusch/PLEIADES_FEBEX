@@ -121,7 +121,12 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 {
                     detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
+                    #ifdef BIBOX
                     detPhysics->fpBIBOXEnergy = theDetector->GetChannel(hitLoc[0])->fDBIBOXEnergy;
+                    #endif // BIBOX
+                    #ifdef MWD
+                    detPhysics->fpMWDEnergy = theDetector->GetChannel(hitLoc[0])->fDMWDEnergy;
+                    #endif // MWD
                     PulseShapeIntegration(theDetector->GetChannel(hitLoc[0]), detPhysics, "pSide");
                     #endif // TPLEIADES_FILL_TRACES
                 }
@@ -129,7 +134,12 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 {
                     detPhysics->fpFPGAEnergy = theDetector->GetChannel(hitLoc[0])->fDFPGAEnergy + theDetector->GetChannel(hitLoc[1])->fDFPGAEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
+                    #ifdef BIBOX
                     detPhysics->fpBIBOXEnergy = theDetector->GetChannel(hitLoc[0])->fDBIBOXEnergy + theDetector->GetChannel(hitLoc[1])->fDBIBOXEnergy;
+                    #endif // BIBOX
+                    #ifdef MWD
+                    detPhysics->fpMWDEnergy = theDetector->GetChannel(hitLoc[0])->fDMWDEnergy + theDetector->GetChannel(hitLoc[1])->fDMWDEnergy;
+                    #endif // MWD
                     TGo4Log::Info("TPLEIADESPhysProc - pStripSelect detected interstrip event, energies summed, pulse shape integrals skipped.");
                     #endif  // TPLEIADES_FILL_TRACES
                 }
@@ -141,12 +151,15 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 {
                     detPhysics->fnFPGAEnergy = theDetector->GetChannel(7)->fDFPGAEnergy;
                     #ifdef TPLEIADES_FILL_TRACES
+                    #ifdef BIBOX
                     detPhysics->fnBIBOXEnergy = theDetector->GetChannel(7)->fDBIBOXEnergy;
+                    #endif // BIBOX
+                    #ifdef MWD
+                    detPhysics->fnMWDEnergy = theDetector->GetChannel(7)->fDMWDEnergy;
+                    #endif // MWD
+                    PulseShapeIntegration(theDetector->GetChannel(7), detPhysics, "nSide");
                     #endif // TPLEIADES_FILL_TRACES
                 }
-                #ifdef TPLEIADES_FILL_TRACES
-                PulseShapeIntegration(theDetector->GetChannel(7), detPhysics, "nSide");
-                #endif // TPLEIADES_FILL_TRACES
             }
             else if((theDetector->GetDetType()) == "DSSD")  // fill energies for DSSD
             {
@@ -160,22 +173,34 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 detPhysics->fpFPGAEnergy = theDetector->GetChannel(0)->fDFPGAEnergy + theDetector->GetChannel(1)->fDFPGAEnergy;
                 detPhysics->fnFPGAEnergy = theDetector->GetChannel(2)->fDFPGAEnergy + theDetector->GetChannel(3)->fDFPGAEnergy;
                 #ifdef TPLEIADES_FILL_TRACES
-                Double_t frontEnergy = theDetector->GetChannel(0)->fDBIBOXEnergy + theDetector->GetChannel(1)->fDBIBOXEnergy;
-                Double_t backEnergy = theDetector->GetChannel(2)->fDBIBOXEnergy + theDetector->GetChannel(3)->fDBIBOXEnergy;
-                detPhysics->fpBIBOXEnergy = frontEnergy;
-                detPhysics->fnBIBOXEnergy = backEnergy;
+                #ifdef BIBOX
+                Double_t frontBIBOXEnergy = theDetector->GetChannel(0)->fDBIBOXEnergy + theDetector->GetChannel(1)->fDBIBOXEnergy;
+                Double_t backBIBOXEnergy = theDetector->GetChannel(2)->fDBIBOXEnergy + theDetector->GetChannel(3)->fDBIBOXEnergy;
+                detPhysics->fpBIBOXEnergy = frontBIBOXEnergy;
+                detPhysics->fnBIBOXEnergy = backBIBOXEnergy;
+                #endif // BIBOX
+                #ifdef MWD
+                Double_t frontMWDEnergy = theDetector->GetChannel(0)->fDMWDEnergy + theDetector->GetChannel(1)->fDMWDEnergy;
+                Double_t backMWDEnergy  = theDetector->GetChannel(2)->fDMWDEnergy + theDetector->GetChannel(3)->fDMWDEnergy;
+                detPhysics->fpMWDEnergy = frontMWDEnergy;
+                detPhysics->fnMWDEnergy = backMWDEnergy;
+                #endif // MWD
+                #endif // TPLEIADES_FILL_TRACES
                 //std::cout << "DSSD BIBOX filters give " << theDetector->GetChannel(0)->fDBIBOXEnergy << ", " << theDetector->GetChannel(1)->fDBIBOXEnergy << ", " << theDetector->GetChannel(2)->fDBIBOXEnergy << ", " << theDetector->GetChannel(3)->fDBIBOXEnergy << std::endl;
 
                 // fill position information
-                if(frontEnergy == 0 || backEnergy == 0)
+                #ifdef TPLEIADES_FILL_TRACES
+                #ifdef BIBOX    // we'll use BIBOX for position, but that can be changed
+                if(frontBIBOXEnergy == 0 || backBIBOXEnergy == 0)
                 {
                     TGo4Log::Warn("TPLEIADESPhysProc - DSSD energy was zero so position was not calculated");
                 }
                 else
                 {
-                    detPhysics->fNormPosX = (theDetector->GetChannel(0)->fDBIBOXEnergy - theDetector->GetChannel(1)->fDBIBOXEnergy)/frontEnergy;
-                    detPhysics->fNormPosY = (theDetector->GetChannel(2)->fDBIBOXEnergy - theDetector->GetChannel(3)->fDBIBOXEnergy)/backEnergy;
+                    detPhysics->fNormPosX = (theDetector->GetChannel(0)->fDBIBOXEnergy - theDetector->GetChannel(1)->fDBIBOXEnergy)/frontBIBOXEnergy;
+                    detPhysics->fNormPosY = (theDetector->GetChannel(2)->fDBIBOXEnergy - theDetector->GetChannel(3)->fDBIBOXEnergy)/backBIBOXEnergy;
                 }
+                #endif // BIBOX
                 #endif // TPLEIADES_FILL_TRACES
             }
             else if((theDetector->GetDetType()) == "Crystal")  // fill energies for crystal
@@ -194,9 +219,15 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 
                 #ifdef TPLEIADES_FILL_TRACES
                 // load the 2 crystal channels from the Raw Event input
+                #ifdef BIBOX
                 detPhysics->fpBIBOXEnergy = theDetector->GetChannel(0)->fDBIBOXEnergy;
-                PulseShapeIntegration(theDetector->GetChannel(0), detPhysics, "pSide");
                 detPhysics->fnBIBOXEnergy = theDetector->GetChannel(1)->fDBIBOXEnergy;
+                #endif // BIBOX
+                #ifdef MWD
+                detPhysics->fpMWDEnergy = theDetector->GetChannel(0)->fDMWDEnergy;
+                detPhysics->fnMWDEnergy = theDetector->GetChannel(1)->fDMWDEnergy;
+                #endif // MWD
+                PulseShapeIntegration(theDetector->GetChannel(0), detPhysics, "pSide");
                 PulseShapeIntegration(theDetector->GetChannel(1), detPhysics, "nSide");
                 std::cout << "Crys nSide Trace Int:  " << detPhysics->fnTraceIntEnergy << std::endl;
                 #endif // TPLEIADES_FILL_TRACES
@@ -214,9 +245,9 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     //------------------------------------------------------------------------
     #ifdef TPLEIADES_FILL_TRACES
     // Calculate statistics on signal clipping
-    FillClipStatsHists();
-    FillTOThreshHists();
-    ExpIntegPHRecon();
+    //FillClipStatsHists();
+    //FillTOThreshHists();
+    //ExpIntegPHRecon();
     //ExpFitPHRecon();
     #endif // TPLEIADES_FILL_TRACES
 
@@ -234,8 +265,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
 }
 
 //------------------------------------------------------------------------
-// standard energy uses FPGA or BIBOX energy directly from TPLEIADESDetEvent, ie no pulse shape analysis.
-// p-sides are handled by selection of active p-strip for SiPads and summation of L/R for DSSD
+// p-strip select creates vector indicating status of event based on hit detection logic. Currently cannot handle pileup
 std::vector<Short_t> TPLEIADESPhysProc::pStripSelect(TPLEIADESDetector* theDetector)
 {
     if(!theDetector) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no det event handed to pStripSelect!"); }
@@ -335,68 +365,6 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
 }
 #endif // TPLEIADES_FILL_TRACES
 
-//------------------------------------------------------------------------
-void TPLEIADESPhysProc::stdSinSideEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)     // fills n-side energy from scalars
-{
-    if(!theDetector) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no det event handed to pStripSelect!"); }
-    else if(!detPhysics) { throw std::invalid_argument("TPLEIADESPhysProc::pStripSelect no phys event handed to pStripSelect!"); }
-
-    TPLEIADESDetChan *nsideDetChan = theDetector->GetChannel(7);
-    if(method == "FPGA") { detPhysics->fnFPGAEnergy = nsideDetChan->fDFPGAEnergy; }
-}
-
-//------------------------------------------------------------------------
-void TPLEIADESPhysProc::stdDSSDEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)   // fills DSSD energy from scalars
-{
-    Int_t chanEnergy = -99; // channel energy placeholder
-    Double_t pEnergy = 0;    // value for total energy deposited in p-side
-    Double_t nEnergy = 0;    // value for total energy deposited in n-side
-
-    for(int j=0; j<4; ++j)
-    {
-        TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
-
-        if(method == "FPGA") { chanEnergy = theDetChan->fDFPGAEnergy; }
-        else { throw std::runtime_error("TPLEIADESPhysProc::stdEnergy only FPGA method currently implemented"); }
-
-        if(chanEnergy == -99) { throw std::runtime_error("TPLEIADESPhysProc::stdEnergy NEVER COME HERE - strip energy wasn't assigned to fDFPGAEnergy"); }
-        else
-        {
-            if(j<2) { pEnergy += chanEnergy; }          // add L/R to pEnergy
-            else if(j>=2) { nEnergy += chanEnergy; }    // add T/B to nEnergy
-        }
-    }
-
-    //fill energies
-    detPhysics->fpFPGAEnergy = pEnergy;
-    detPhysics->fnFPGAEnergy = nEnergy;
-}
-
-//------------------------------------------------------------------------
-void TPLEIADESPhysProc::stdDSSDPosition(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics) // standard computation of normalised position
-{
-
-}
-
-//------------------------------------------------------------------------
-void TPLEIADESPhysProc::stdCrystalEnergy(TString method, TPLEIADESDetector* theDetector, TPLEIADESDetPhysics* detPhysics)// fills Crystal energies from scalars
-{
-    for(int j=0; j<2; ++j)
-    {
-        TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
-        Int_t chanEnergy = -99; // channel energy placeholder
-
-        if(method == "FPGA") { chanEnergy = theDetChan->fDFPGAEnergy; }
-        else { throw std::runtime_error("TPLEIADESPhysProc::stdEnergy only FPGA method currently implemented"); }
-
-        if(chanEnergy == -99) { throw std::runtime_error("TPLEIADESPhysProc::stdEnergy NEVER COME HERE - strip energy wasn't assigned to fDFPGAEnergy"); }
-        else
-        {
-            if(j==0) { detPhysics->fpFPGAEnergy = chanEnergy; }
-            else if(j==1) { detPhysics->fnFPGAEnergy = chanEnergy; }
-        }
-    }
-}
 
 //------------------------------------------------------------------------
 // the following functions are for the pulse height analysis of saturated traces
