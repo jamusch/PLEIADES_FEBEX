@@ -148,7 +148,7 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
             dssdChan->SetDetName(fDetName.Data());
             dssdChan->SetDetId(getId());
             dssdChan->SetDetType(fDetType.Data());
-            dssdChan->SetChanMap(fParDet->fDSSDMap[j]);
+            dssdChan->SetChanMap(fParDet->fDSSDMap[fDetName].at(j));
             dssdChan->SetChanType("dssdChan");
             addEventElement(dssdChan);
         }
@@ -164,7 +164,7 @@ void TPLEIADESDetector::SetupDetector()    // builds detector channels based on 
             crysChan->SetDetName(fDetName.Data());
             crysChan->SetDetId(getId());
             crysChan->SetDetType(fDetType.Data());
-            crysChan->SetChanMap(fParDet->fCrystalMap[j]);
+            crysChan->SetChanMap(fParDet->fCrystalMap[fDetName].at(j));
             crysChan->SetChanType("crysChan");
             addEventElement(crysChan);
         }

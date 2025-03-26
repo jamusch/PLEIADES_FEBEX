@@ -23,7 +23,7 @@
 
 // comment out define statements to turn on/off
 
-//#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
+#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 
 #ifdef WR_TIME_STAMP
     #define SUB_SYSTEM_ID      0x200
@@ -33,7 +33,7 @@
     #define TS__ID_X16         0x6e1
 #endif // WR_TIME_STAMP
 
-#define USE_MBS_PARAM     1
+//#define USE_MBS_PARAM     1
 
 /* ------------------------------------------------
 // now these definitions are in TPLEIADESRawEvent.h
@@ -47,13 +47,15 @@
 //#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
 #define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
 
-#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC
+//#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC
+#define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
 
 #ifdef USE_MBS_PARAM
     #define MAX_TRACE_SIZE   8000   // in samples
     #define MAX_BIBOX_N_AVG  2000   // in samples
 #else 
-    #define     TRACE_SIZE    1000   // in samples 1024
+    #define     TRACE_SIZE    3000   // in samples 1024
+    #define MAX_TRACE_SIZE TRACE_SIZE // JAM 26-03-25
     //#define     BIBOX_N_AVG    64   // in samples
     // nr of slaves on SFP 0  1  2  3
     //                     |  |  |  |

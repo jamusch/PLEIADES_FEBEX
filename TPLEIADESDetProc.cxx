@@ -222,7 +222,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             for(int j=0; j<4; ++j)
             {
                 // det board is called inside for loop in case different channels are plugged into differnet MSI-8s
-                UInt_t dBoardID = (fPar->fDSSDMap[j] >> 4);               // bitwise shift to just select board location
+                UInt_t dBoardID = (fPar->fDSSDMap[dname].at(j) >> 4);               // bitwise shift to just select board location
                 TPLEIADESFebBoard *dBoard = RawEvent->GetBoard(dBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
@@ -279,7 +279,7 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             for(int j=0; j<2; ++j)
             {
                 // det board is called inside for loop in case different channels are plugged into differnet MSI-8s
-                UInt_t cBoardID = (fPar->fCrystalMap[j] >> 4);               // bitwise shift to just select board location
+                UInt_t cBoardID = (fPar->fCrystalMap[dname].at(j) >> 4);               // bitwise shift to just select board location
                 TPLEIADESFebBoard *cBoard = RawEvent->GetBoard(cBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
