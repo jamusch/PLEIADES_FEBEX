@@ -33,7 +33,7 @@
     #define TS__ID_X16         0x6e1
 #endif // WR_TIME_STAMP
 
-//#define USE_MBS_PARAM     1
+#define USE_MBS_PARAM     1
 
 /* ------------------------------------------------
 // now these definitions are in TPLEIADESRawEvent.h
@@ -59,8 +59,8 @@
     //#define     BIBOX_N_AVG    64   // in samples
     // nr of slaves on SFP 0  1  2  3
     //                     |  |  |  |
-    #define NR_SLAVES    { 0, 5, 0, 0}
-    #define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
+    #define NR_SLAVES    { 5, 5, 0, 0}
+    #define ADC_TYPE     { 0xffff, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
                                             // bit 0 fuer slave module 0
                                             // bit n fuer slave module n (max n = 31)
 
@@ -107,8 +107,14 @@ class TPLEIADESRawProc : public TGo4EventProcessor
 
         /** parameter for runtime settings **/
         TPLEIADESParam* fPar;
-
-
+#ifdef WR_TIME_STAMP
+        UInt_t fWR_SubsystemID;
+        ULong_t fWR_Timestamp;
+        ULong_t fWR_Timestamp_prev;
+        Double_t fWR_delta_t;
+        TH1*  h_wr_delta_t;
+        TH1* h_wr_subsystemid;
+#endif
         TH1  *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
         TH1  *h_trace_blr_fit [MAX_SFP][MAX_SLAVE][N_CHA];  //!

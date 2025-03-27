@@ -107,6 +107,12 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
     for(const TString& dname : fPar->fDetNameVec)
     {
         TPLEIADESDetector *theDetector = fOutEvent->GetDetector(dname);
+        if(theDetector==0)
+          {
+            TGo4Log::Warn("NEVER COME HERE: detector %s not existing, please check configuration\n",dname.Data());//std::cout<<std::endl;
+            continue;
+          }
+
         TPLEIADESDetDisplay *detDisplay = fOutEvent->fDetDisplays[theDetector->getId()];
         //std::cout << "Sanity check!: detector name: " << theDetector->GetDetName() << " matches det display: " << detDisplay->fDetector->GetDetName() << std::endl;
 
@@ -226,11 +232,20 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebBoard *dBoard = RawEvent->GetBoard(dBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                // JAM 3-2025: catch any wrongly mapped channels here
+                if(theDetChan==0) {
+                  TGo4Log::Warn("warning: detector channel %d of detector %s not mapped \n",j,dname.Data());//std::cout<<std::endl;
+                  continue;
+                }
                 TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName());
 
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is
                 TPLEIADESFebChannel *theRawChan = dBoard->GetChannel(rawChPos);
-
+                // JAM 3-2025: catch any wrongly mapped channels here
+                if(theRawChan==0) {
+                  TGo4Log::Warn("warning: raw channel 0x%x of detector %s not mapped \n",rawChPos,dname.Data());//std::cout<<std::endl;
+                  continue;
+                }
                 // load hit multiplicity information
                 if(fOutEvent->fPhysTrigger) { chanDisplay->hHitMultiplicity->Fill(-1); }
                 theDetChan->fDPolarity = theRawChan->fRPolarity;
@@ -252,10 +267,14 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 //theDetChan->fDBIBOXEnergy    = theRawChan->fRBIBOXEnergy;
                 // BIBOX energy doesn't work for DSSD because polarity in f_user.C is wrong!!! must invert BIBOX filter
                 std::vector<Double_t> vec = theRawChan->fRBIBOXTrace;
-                for(Double_t& value : vec) { value *= -1; }
-                auto max_iter = std::max_element(vec.begin(), vec.end());
-                theDetChan->fDBIBOXEnergy    = *max_iter;
-                theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+                //TGo4Log::Warn("DDDDDDD vector size is %ld, empty:%d",vec.size(), vec.empty());
+                if(!vec.empty()) // JAM27-03-2025
+                  {
+                  for(Double_t& value : vec) { value *= -1; }
+                  auto max_iter = std::max_element(vec.begin(), vec.end());
+                  theDetChan->fDBIBOXEnergy    = *max_iter;
+                  theDetChan->fDBIBOXTrace     = theRawChan->fRBIBOXTrace;
+                  }
                 #endif // BIBOX
 
                 #ifdef MWD

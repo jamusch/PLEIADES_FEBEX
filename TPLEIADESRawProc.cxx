@@ -54,14 +54,14 @@ static UInt_t    l_first  = 0;
 static UInt_t    l_first2 = 0;
 
 //------------------------------------------------------------------------
-TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc")
+TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc"),fWR_Timestamp(0), fWR_Timestamp_prev(0)
 {
     TGo4Log::Info("TPLEIADESRawProc: Create instance ");
 }
 
 //------------------------------------------------------------------------
 // this one is used in standard factory
-TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
+TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name),fWR_Timestamp(0), fWR_Timestamp_prev(0)
 {
     TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
     fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
@@ -238,7 +238,12 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     TGo4MbsSubEvent* psubevt;
 
     source->ResetIterator();
-    psubevt = source->NextSubEvent(); // only one subevent
+
+    // JAM25: scan all subevents here:
+     while (auto psubevt = source->NextSubEvent()) // subevent loop
+     {
+
+       //if( psubevt->GetSubcrate() == 0)
 
     // next we extract data word for subevent and prepare properties
     // GetDataField is pointer to subevent data. pl_tmp++ increments pointer to next word in stream.
@@ -266,45 +271,71 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
     // checks WR time stamp. 5 first 32 bits must be white rabbit time stamp
     #ifdef WR_TIME_STAMP
-    l_dat = *pl_tmp++;
-    // sub system ID commented because timesorter means we have 3 IDs
+    // JAM 27-03-25: get statistics of subsystems here
+    fWR_SubsystemID = *pl_tmp++;
+    if(l_first != 0)
+      {
+        h_wr_subsystemid->Fill(fWR_SubsystemID/0x100);
+      }
+
+    // sub system ID CHECK commented because timesorter means we have 3 IDs
     /*
-    if(l_dat != SUB_SYSTEM_ID)
+    if(fWR_SubsystemID != SUB_SYSTEM_ID)
     {
         printf ("ERROR>> 1. data word is not sub-system id: %d \n");
         printf ("should be: 0x%x, but is: 0x%x\n", SUB_SYSTEM_ID, l_dat);
     }
 
-    if(l_dat != SUB_SYSTEM_ID)
+    if(fWR_SubsystemID != SUB_SYSTEM_ID)
     {
         goto bad_event;
     }
     */
-    l_dat = (*pl_tmp++) >> 16;
-    if(l_dat != TS__ID_L16)
+
+    // JAM 27-03-25: evaluate time stamp for possible checks later
+    l_dat = (*pl_tmp) >> 16;
+    if (l_dat != TS__ID_L16)
     {
-        printf ("ERROR>> 2. data word does not contain 0-15 16bit identifier: \n");
-        printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_L16, l_dat);
+      printf ("ERROR>> 2. data word does not contain low 16bit identifier:\n");
+      printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_L16, l_dat);
     }
-    l_dat = (*pl_tmp++) >> 16;
-    if(l_dat != TS__ID_M16)
+    fWR_Timestamp = *pl_tmp++ & 0xFFFF;
+
+    l_dat = (*pl_tmp) >> 16;
+    if (l_dat != TS__ID_M16)
     {
-        printf ("ERROR>> 3. data word does not contain 16-31 16bit identifier:  \n");
-        printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_M16, l_dat);
+      printf ("ERROR>> 3. data word does not contain mid 16bit identifier:\n");
+      printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_M16, l_dat);
     }
-    l_dat = (*pl_tmp++) >> 16;
-    if(l_dat != TS__ID_H16)
+    fWR_Timestamp +=( (*pl_tmp++ & 0xFFFF) << 16);
+
+    l_dat = (*pl_tmp) >> 16;
+    if (l_dat != TS__ID_H16)
     {
-        printf ("ERROR>> 4. data word does not contain 32-47 16bit identifier:  \n");
-        printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_H16, l_dat);
+      printf ("ERROR>> 4. data word does not contain high 16bit identifier:\n");
+      printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_H16, l_dat);
     }
-    l_dat = (*pl_tmp++) >> 16;
-    if(l_dat != TS__ID_X16)
-    {
-        printf ("ERROR>> 5. data word does not contain 48-63 16bit identifier:  \n");
+    fWR_Timestamp +=((*pl_tmp++ & 0xFFFF)<< 32);
+
+    l_dat = (*pl_tmp) >> 16;
+    if (l_dat != TS__ID_X16)
+        {
+        printf ("ERROR>> 5. data word does not contain xhigh 16bit identifier:\n");
         printf ("should be: 0x%x, but is: 0x%x\n", TS__ID_X16, l_dat);
         printf ("WR_TIME_STAMP is activated, but timestamp is throwing errors. Perhaps WR_TIME_STAMP should be turned off?\n");
-    }
+        }
+    fWR_Timestamp +=((*pl_tmp++ & 0xFFFF)<< 48);
+    if(fWR_Timestamp_prev)
+            {
+            fWR_delta_t=fWR_Timestamp - fWR_Timestamp_prev;
+            if(l_first != 0)
+                {
+                  h_wr_delta_t->Fill(fWR_delta_t);
+                }
+            }
+    fWR_Timestamp_prev=fWR_Timestamp;
+
+
     #endif // WR_TIME_STAMP
 
 
@@ -933,6 +964,8 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     if(l_bibox_e[1][0][7] > 4000) { fOutEvent->fPulserTrigger = kTRUE; } else  { fOutEvent->fPulserTrigger = kFALSE; }  // does empty channel have pulser?
     #endif // BIBOX
 
+ } // while subevents
+
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
     bad_event:
@@ -980,6 +1013,25 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
     l_trap_n_avg = BIBOX_N_AVG;
     #endif // USE_MBS_PARAM
 
+#ifdef WR_TIME_STAMP
+    h_wr_delta_t= MakeTH1('F', "WRTimestamps/WR_Delta_time", "WR Time difference subsequent events",50000,0,200000,"#Delta t (ns)");
+    h_wr_subsystemid = MakeTH1('I', "WRTimestamps/WR_Subsystems", "WR subsystem IDs", 10, 0, 10);
+      if (IsObjMade())
+      {
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 0, "0x100");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 1, "0x200");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 2, "0x300");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 3, "0x400");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 4, "0x500");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 5, "0x600");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 6, "0x700");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 7, "0x800");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 8, "0x900");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 9, "unknown");
+      }
+
+
+#endif
     // set trace size value in parameter
     fPar->fTraceSize = l_tra_size;
 
