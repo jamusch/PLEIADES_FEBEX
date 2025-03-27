@@ -84,7 +84,8 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
     TPLEIADESRawEvent *RawEvent = (TPLEIADESRawEvent*) GetInputEvent();
     if(!RawEvent || !RawEvent->IsValid())
     {
-        TGo4Log::Error("TPLEIADESDetProc: no input event !");
+        // JAM25- suppress this for hybrid/timemerged system
+        //TGo4Log::Error("TPLEIADESDetProc: no input event !");
         return isValid;
     }
 

@@ -66,6 +66,28 @@ TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name),
     TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
     fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
     if(fPar) { fPar->SetConfigBoards(); }
+
+#ifdef WR_TIME_STAMP
+    h_wr_delta_t= MakeTH1('F', "WRTimestamps/WR_Delta_time", "WR Time difference subsequent events",50000,0,200000,"#Delta t (ns)");
+    h_wr_subsystemid = MakeTH1('I', "WRTimestamps/WR_Subsystems", "WR subsystem IDs", 10, 0, 10);
+      if (IsObjMade())
+      {
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 0, "0x100");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 1, "0x200");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 2, "0x300");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 3, "0x400");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 4, "0x500");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 5, "0x600");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 6, "0x700");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 7, "0x800");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 8, "0x900");
+        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 9, "unknown");
+      }
+
+
+#endif
+
+
 }
 
 //------------------------------------------------------------------------
@@ -120,7 +142,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     UInt_t  l_dat_len_byte;     // data length in bytes
 
     UInt_t  l_dat;              // data word
-    UInt_t  l_trig_type;        // trigger type. 1 = physics event. We don't use other trigger types.
+    UInt_t  l_trig_type;        // trigger type. used to make difference between febex and vme systems.
     UInt_t  l_trig_type_triva;  // another trigger type, not sure why we need two??
     UInt_t  l_sfp_id;           // SFP ID (ie FEBEX crate)
     UInt_t  l_feb_id;           // FEBEX card ID
@@ -275,22 +297,9 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     fWR_SubsystemID = *pl_tmp++;
     if(l_first != 0)
       {
-        h_wr_subsystemid->Fill(fWR_SubsystemID/0x100);
+        h_wr_subsystemid->Fill(fWR_SubsystemID/0x100 -1 );
       }
 
-    // sub system ID CHECK commented because timesorter means we have 3 IDs
-    /*
-    if(fWR_SubsystemID != SUB_SYSTEM_ID)
-    {
-        printf ("ERROR>> 1. data word is not sub-system id: %d \n");
-        printf ("should be: 0x%x, but is: 0x%x\n", SUB_SYSTEM_ID, l_dat);
-    }
-
-    if(fWR_SubsystemID != SUB_SYSTEM_ID)
-    {
-        goto bad_event;
-    }
-    */
 
     // JAM 27-03-25: evaluate time stamp for possible checks later
     l_dat = (*pl_tmp) >> 16;
@@ -338,6 +347,15 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
     #endif // WR_TIME_STAMP
 
+    // JAM 27-Mar-25: here check for white rabbit subsystem ids:
+      if(fWR_SubsystemID==SUB_SYSTEM_ID_VME)
+      {
+        //printf("WWWWWW using VME subsystem id 0x%x, trigger:%d\n",fWR_SubsystemID, l_trig_type_triva); fflush (stdout);
+        continue; // no unpacker for vme for the moment, try next subevent if any
+      }
+      else if ((fWR_SubsystemID==SUB_SYSTEM_ID_FEB1) || (fWR_SubsystemID==SUB_SYSTEM_ID_FEB2))
+      {
+        //printf("WWWWWW using FEBEX subsystem id 0x%x, trigger:%d \n",fWR_SubsystemID, l_trig_type_triva); fflush (stdout);
 
     //------------------------------------------------------------------------
     // extract analysis parameters from MBS data
@@ -366,6 +384,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
         #endif
         f_make_histo (0);	// calls make histograms function
     }
+
 
     //------------------------------------------------------------------------
     // reset arrays before processing new data
@@ -483,7 +502,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 l_n_hit = (l_cha_size - 16) >> 3;
                 //printf ("#hits: %d \n", l_n_hit);
 
-                if(l_trig_type_triva == 1) // physics event
+                if(l_trig_type_triva == TRIGGER_TYPE_FEBEX) // physics event
                 {
                     #ifdef NIK_EXTRA_HISTS
                     h_hitpat[l_sfp_id][l_feb_id]->Fill (-1, 1);
@@ -588,7 +607,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 //fflush (stdout);
                 //sleep (1);
 
-                if(l_trig_type == 1) // physics event
+                if(l_trig_type == TRIGGER_TYPE_FEBEX) // physics event
                 {
                     if(l_first_trace[l_sfp_id][l_feb_id] == 0)
                     {
@@ -898,7 +917,11 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 //printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID);
 
                 TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(brdID);
-
+                if(theBoard==0)
+                  {
+                  TGo4Log::Warn("NEVER COME HERE: board of id  %d not existing, please check configuration\n",brdID);//std::cout<<std::endl;
+                  continue;
+                  }
                 UInt_t nChan = theBoard->getNElements();
                 if (nChan != N_CHA)
                 {
@@ -964,9 +987,15 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     if(l_bibox_e[1][0][7] > 4000) { fOutEvent->fPulserTrigger = kTRUE; } else  { fOutEvent->fPulserTrigger = kFALSE; }  // does empty channel have pulser?
     #endif // BIBOX
 
+    fOutEvent->SetValid(isValid);     // now event is filled, store event
+
+      } // if l_trigtype_triva
+    else
+    {
+      TGo4Log::Warn("Found unexpected WR subsystem 0x%x, no processing",fWR_SubsystemID);
+    }
  } // while subevents
 
-    fOutEvent->SetValid(isValid);     // now event is filled, store event
 
     bad_event:
 
@@ -1013,25 +1042,7 @@ void TPLEIADESRawProc::f_make_histo(Int_t l_mode)
     l_trap_n_avg = BIBOX_N_AVG;
     #endif // USE_MBS_PARAM
 
-#ifdef WR_TIME_STAMP
-    h_wr_delta_t= MakeTH1('F', "WRTimestamps/WR_Delta_time", "WR Time difference subsequent events",50000,0,200000,"#Delta t (ns)");
-    h_wr_subsystemid = MakeTH1('I', "WRTimestamps/WR_Subsystems", "WR subsystem IDs", 10, 0, 10);
-      if (IsObjMade())
-      {
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 0, "0x100");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 1, "0x200");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 2, "0x300");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 3, "0x400");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 4, "0x500");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 5, "0x600");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 6, "0x700");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 7, "0x800");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 8, "0x900");
-        h_wr_subsystemid->GetXaxis()->SetBinLabel(1 + 9, "unknown");
-      }
 
-
-#endif
     // set trace size value in parameter
     fPar->fTraceSize = l_tra_size;
 

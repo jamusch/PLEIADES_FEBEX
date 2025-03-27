@@ -23,10 +23,17 @@
 
 // comment out define statements to turn on/off
 
+// JAM 3-2025: configuration of trigger types of combined system
+#define TRIGGER_TYPE_FEBEX 3
+#define TRIGGER_TYPE_VME 1
+
+
 #define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 
 #ifdef WR_TIME_STAMP
-    #define SUB_SYSTEM_ID      0x200
+    #define SUB_SYSTEM_ID_FEB1      0x100
+    #define SUB_SYSTEM_ID_FEB2      0x200
+    #define SUB_SYSTEM_ID_VME       0x400
     #define TS__ID_L16         0x3e1
     #define TS__ID_M16         0x4e1
     #define TS__ID_H16         0x5e1
@@ -44,7 +51,7 @@
 #define N_CHA            16
 ------------------------------------------------ */
 
-//#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
+#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
 #define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
 
 //#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC

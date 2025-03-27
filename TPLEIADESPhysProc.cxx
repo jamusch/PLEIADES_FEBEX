@@ -62,7 +62,8 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
     fInEvent = (TPLEIADESDetEvent*) GetInputEvent();
     if(!fInEvent || !fInEvent->IsValid())
     {
-        TGo4Log::Error("TPLEIADESPhysProc: no input event!");
+      // JAM25- suppress this for hybrid/timemerged system
+        //TGo4Log::Error("TPLEIADESPhysProc: no input event!");
         return isValid;
     }
 
@@ -109,7 +110,8 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 if(hitLoc.size() == 0)   // no hits on p strips
                 {
                     // use of firstEmptyError suppresses 7 error messages for each channel
-                    if(firstEmptyError) { TGo4Log::Info("TPLEIADESPhysProc - no hits were found by pStripSelect. Pulser event below FPGA threshold?"); firstEmptyError = kFALSE; }
+                    if(firstEmptyError) { //TGo4Log::Info("TPLEIADESPhysProc - no hits were found by pStripSelect. Pulser event below FPGA threshold?");
+                    firstEmptyError = kFALSE; }
                     continue;
                 }
                 else if(hitLoc.back() == -99)   // unphysical event, skipping
@@ -193,7 +195,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 #ifdef BIBOX    // we'll use BIBOX for position, but that can be changed
                 if(frontBIBOXEnergy == 0 || backBIBOXEnergy == 0)
                 {
-                    TGo4Log::Warn("TPLEIADESPhysProc - DSSD energy was zero so position was not calculated");
+                    //TGo4Log::Warn("TPLEIADESPhysProc - DSSD energy was zero so position was not calculated");
                 }
                 else
                 {
@@ -229,7 +231,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 #endif // MWD
                 PulseShapeIntegration(theDetector->GetChannel(0), detPhysics, "pSide");
                 PulseShapeIntegration(theDetector->GetChannel(1), detPhysics, "nSide");
-                std::cout << "Crys nSide Trace Int:  " << detPhysics->fnTraceIntEnergy << std::endl;
+                //std::cout << "Crys nSide Trace Int:  " << detPhysics->fnTraceIntEnergy << std::endl;
                 #endif // TPLEIADES_FILL_TRACES
             }
             else
@@ -308,8 +310,10 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     std::vector<Double_t> trace, traceBLR;
     trace = theDetChan->fDTrace;
     traceBLR = theDetChan->fDTraceBLR;
-    if(trace.size() == 0) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace integral requested but trace is empty, skipping!"); return; }
-    else if(trace.size() != 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace is not 3000 bins, skipping!"); return; }
+    if(trace.size() == 0) { //TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace integral requested but trace is empty, skipping!");
+    return; }
+    else if(trace.size() != 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace is not 3000 bins, skipping!");
+    return; }
 
     Short_t startRise, startInt, stopInt;
     Bool_t  startRec, satTrace;
