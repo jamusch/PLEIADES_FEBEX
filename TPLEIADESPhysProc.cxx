@@ -116,7 +116,7 @@ Bool_t TPLEIADESPhysProc::BuildEvent(TGo4EventElement* target)
                 }
                 else if(hitLoc.back() == -99)   // unphysical event, skipping
                 {
-                    TGo4Log::Warn("TPLEIADESPhysProc - pileup event or multiple strips hit but not neighbours, skipping!");
+                    //TGo4Log::Warn("TPLEIADESPhysProc - pileup event or multiple strips hit but not neighbours, skipping!");
                     continue;
                 }
                 else if(hitLoc.size() == 1)   // single strip event, easy

@@ -502,7 +502,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 l_n_hit = (l_cha_size - 16) >> 3;
                 //printf ("#hits: %d \n", l_n_hit);
 
-                if(l_trig_type_triva == TRIGGER_TYPE_FEBEX) // physics event
+                if(l_trig_type_triva == 1  || l_trig_type_triva == TRIGGER_TYPE_FEBEX ) // physics event
                 {
                     #ifdef NIK_EXTRA_HISTS
                     h_hitpat[l_sfp_id][l_feb_id]->Fill (-1, 1);
@@ -607,7 +607,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 //fflush (stdout);
                 //sleep (1);
 
-                if(l_trig_type == TRIGGER_TYPE_FEBEX) // physics event
+                if(l_trig_type ==1 || l_trig_type == TRIGGER_TYPE_FEBEX) // physics event
                 {
                     if(l_first_trace[l_sfp_id][l_feb_id] == 0)
                     {
@@ -851,12 +851,12 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
                 // check trace trailer to exit subevent correctly
                 //printf ("trace trailer \n");
                 l_trace_trail = *pl_tmp++;
-                if( ((l_trace_trail & 0xff000000) >> 24) != 0xbb)
-                {
-                    printf ("ERROR>> trace trailer id is not 0xbb, ");
-                    printf ("SFP: %d, FEB: %d, CHA: %d \n", l_sfp_id, l_feb_id, l_cha_id);
-                    goto bad_event;
-                }
+//                if( ((l_trace_trail & 0xff000000) >> 24) != 0xbb)
+//                {
+//                    printf ("ERROR>> trace trailer id is not 0xbb, ");
+//                    printf ("SFP: %d, FEB: %d, CHA: %d \n", l_sfp_id, l_feb_id, l_cha_id);
+//                    goto bad_event;
+//                }
             }
         }
         else    // if data word not padding or channel header, throw error
