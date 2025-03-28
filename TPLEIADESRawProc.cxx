@@ -361,7 +361,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
 
           //printf("WWWWWW using FEBEX subsystem id 0x%x, trigger:%d \n",fWR_SubsystemID, l_trig_type_triva); fflush (stdout);
-          size_t offset= pl_tmp- pl_se_dat;
+          size_t offset= (char*)(pl_tmp)- (char*) (pl_se_dat);
           if(!subproc->BuildSubEvent(psubevt,offset, fOutEvent)) goto bad_event;
         }
         else

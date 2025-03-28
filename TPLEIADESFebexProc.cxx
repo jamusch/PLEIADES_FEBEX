@@ -99,7 +99,7 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
 //    fOutEvent->SetValid(kFALSE); // initialize next output as not filled, i.e.it is only stored when something is in
 //    fOutEvent->fPhysTrigger = kFALSE;   // reset physics trigger each event
 //
-//    isValid = kTRUE;            // input/ouput events look good
+    isValid = kTRUE;            // input/ouput events look good
 
     //------------------------------------------------------------------------
     // object definitions. these objects will be used in reading the data stream.
@@ -230,7 +230,7 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
     pl_tmp = pl_se_dat;
 
     // JAM25 skip WR information previously taken out from super processor
-    pl_tmp+=off;
+    pl_tmp+= off/sizeof(uint32_t);
 
 
     //------------------------------------------------------------------------
@@ -365,12 +365,12 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
                 l_cha_size = *pl_tmp++;
 
                 l_spec_head = *pl_tmp++;
-                if( (l_spec_head & 0xff000000) != 0xaf000000)
-                {
-                    printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n", (l_spec_head & 0xff000000)>>24, 0xaf);
-                    goto bad_event;
-                    //sleep (1);
-                }
+//                if( (l_spec_head & 0xff000000) != 0xaf000000)
+//                {
+//                    printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n", (l_spec_head & 0xff000000)>>24, 0xaf);
+//                    goto bad_event;
+//                    //sleep (1);
+//                }
                 ll_trg_time  = (Long64_t)*pl_tmp++;
                 ll_time      = (Long64_t)*pl_tmp++;
                 ll_trg_time += ((ll_time & 0xffffff) << 32);
@@ -452,12 +452,12 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
                     }
                 }
                 l_spec_trail = *pl_tmp++;   // checks for final trailing word to close subevent
-                if( (l_spec_trail & 0xff000000) != 0xbf000000)
-                {
-                    printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n", (l_spec_trail & 0xff000000)>>24, 0xbf);
-                    goto bad_event;
-                    //sleep (1);
-                }
+//                if( (l_spec_trail & 0xff000000) != 0xbf000000)
+//                {
+//                    printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n", (l_spec_trail & 0xff000000)>>24, 0xbf);
+//                    goto bad_event;
+//                    //sleep (1);
+//                }
             }
             //------------------------------------------------------------------------
             else // if not special, must be real channel
@@ -865,12 +865,13 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
 
     fOutEvent->SetValid(isValid);     // now event is filled, store event
 
+    return isValid;
 
 
     bad_event:
 
 
-    return isValid;
+    return kFALSE;
 }
 
 //------------------------------------------------------------------------
