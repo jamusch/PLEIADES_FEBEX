@@ -46,28 +46,34 @@ TPLEIADESParam::~TPLEIADESParam()
 
 void TPLEIADESParam::InitBoardMapping()
 {
-    for(int sfp=0; sfp<MAX_SFP; ++sfp)
+  for (int kin = 0; kin < MAX_CRATES; ++kin)
+  {
+    for (int sfp = 0; sfp < MAX_SFP; ++sfp)
     {
-        for(int brd=0; brd<MAX_SLAVE; ++brd)
-        {
-            fBoardID[sfp][brd] = -1;
-        }
+      for (int brd = 0; brd < MAX_SLAVE; ++brd)
+      {
+        fBoardID[kin][sfp][brd] = -1;
+      }
     }
+  }
 }
 
 Bool_t TPLEIADESParam::SetConfigBoards()
 {
     TPLEIADESRawEvent::fgConfigBoards.clear();
+    for (int kin = 0; kin < MAX_CRATES; ++kin)
+     {
     for(int sfp=0; sfp<MAX_SFP; ++sfp)
     {
         for(int brd=0; brd<MAX_SLAVE; ++brd)
         {
-            Int_t bid = fBoardID[sfp][brd];
+            Int_t bid = fBoardID[kin][sfp][brd];
             if(bid < 0) continue;
             TPLEIADESRawEvent::fgConfigBoards.push_back(bid);
-            TGo4Log::Info("TPLEIADESParam::SetConfigBoards registers board unique ID 0x%x configured at SFP %d Board %d", bid, sfp, brd);
+            TGo4Log::Info("TPLEIADESParam::SetConfigBoards registers board unique ID 0x%x configured at kinpex %d, SFP %d Board %d", bid, kin, sfp, brd);
         }
     }
+     }
     return kTRUE;
 }
 

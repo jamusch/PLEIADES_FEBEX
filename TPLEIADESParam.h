@@ -33,7 +33,8 @@ class TPLEIADESParam : public TGo4Parameter
         Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
         // parameters for step1 - unpacking to FEBEX board format
-        Int_t fBoardID[MAX_SFP][MAX_SLAVE];     // boardID to handle multiple SFP chains
+        Int_t fBoardID[MAX_CRATES][MAX_SFP][MAX_SLAVE];     // boardID to handle multiple SFP chains
+
         void InitBoardMapping();                // initialise to empty mapping
         Bool_t SetConfigBoards();               // copy board IDs to event members
 

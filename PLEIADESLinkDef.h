@@ -24,6 +24,7 @@
 
 #pragma link C++ class TPLEIADESRawEvent+;
 #pragma link C++ class TPLEIADESRawProc+;
+#pragma link C++ class TPLEIADESFebexProc+;
 #pragma link C++ class TPLEIADESFebBoard+;
 #pragma link C++ class TPLEIADESFebChannel+;
 

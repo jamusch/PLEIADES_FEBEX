@@ -23,6 +23,7 @@
 #define BIBOX   1                   // toggle if BIBOX filter is used
 #define MWD     1                   // toggle if MWC (moving window deconvolution) filter is used
 
+#define MAX_CRATES  2   // max number of kinpex crates (readout PCs) in data stream
 #define MAX_SFP     4   // max number of SFPs possible
 #define MAX_SLAVE   5   // max number of FEBEX cards possible
 #define N_CHA       16  // max number of channels of FEBEX card

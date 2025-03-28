@@ -22,17 +22,19 @@ void set_PLEIADESParam()
     // set FEBEX board IDs here. Only define boards if they really exist.
     // code for Board IDs is 8 bit word: bit 5,4 are the SFP, bit 3-0 are the Board slots in crate.
     // e.g. i plug a Board into SFP 2 at slot 9 (0 being first slot). the position code is 0x28.
-    //------------------------------------------------------------------------
-    param0->fBoardID[1][0] = 0x10;
-    param0->fBoardID[1][1] = 0x11;
-    param0->fBoardID[1][2] = 0x12;
-    param0->fBoardID[1][3] = 0x13;
-    param0->fBoardID[1][4] = 0x14;
 
-    param0->fBoardID[0][0] = 0x00;
-    param0->fBoardID[0][1] = 0x01;
-    param0->fBoardID[0][2] = 0x02;
-    param0->fBoardID[0][3] = 0x03;
+    // JAM28-03-25: first index is kinpex crate number now [0=0x100, 1=0x200
+    //------------------------------------------------------------------------
+    param0->fBoardID[0][1][0] = 0x10;
+    param0->fBoardID[0][1][1] = 0x11;
+    param0->fBoardID[0][1][2] = 0x12;
+    param0->fBoardID[0][1][3] = 0x13;
+    param0->fBoardID[0][1][4] = 0x14;
+
+    param0->fBoardID[1][1][0] = 0x00;
+    param0->fBoardID[1][1][1] = 0x01;
+    param0->fBoardID[1][1][2] = 0x02;
+    param0->fBoardID[1][1][3] = 0x03;
 
     //------------------------------------------------------------------------
     // set Detector IDs here. NB: using operator[] overwrites map entry. Ensure no duplicate keys (ie det names)!
@@ -108,10 +110,7 @@ void set_PLEIADESParam()
     param0->fCrystalMap[sBPname][0] = 0x14E;         // BP pin1 goes to card 4, ch 12
     param0->fCrystalMap[sBPname][1] = 0x14F;         // BP pin2 goes to card 4, ch 13
 
-    // Detector number 2 ---> SFP0
-     // ********
-     // N.B. CJG 25/03/2025: Independent detectors currently identified by the SFP port into which they are plugged. Future updates should identify them by MBS subevent data
-     // ********
+    // Detector number 2 ---> kinpex 1
 
      
      //----- Slot 1 -----

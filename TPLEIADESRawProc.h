@@ -17,6 +17,8 @@
 
 #include "TGo4EventProcessor.h"
 #include "TPLEIADESRawEvent.h"
+#include "TPLEIADESFebexProc.h"
+
 #include "TF1.h"
 
 #include "stdint.h"
@@ -40,7 +42,7 @@
     #define TS__ID_X16         0x6e1
 #endif // WR_TIME_STAMP
 
-#define USE_MBS_PARAM     1
+//#define USE_MBS_PARAM     1
 
 /* ------------------------------------------------
 // now these definitions are in TPLEIADESRawEvent.h
@@ -51,48 +53,48 @@
 #define N_CHA            16
 ------------------------------------------------ */
 
-#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
-#define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
-
-//#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC
-#define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
-
-#ifdef USE_MBS_PARAM
-    #define MAX_TRACE_SIZE   8000   // in samples
-    #define MAX_BIBOX_N_AVG  2000   // in samples
-#else 
-    #define     TRACE_SIZE    3000   // in samples 1024
-    #define MAX_TRACE_SIZE TRACE_SIZE // JAM 26-03-25
-    //#define     BIBOX_N_AVG    64   // in samples
-    // nr of slaves on SFP 0  1  2  3
-    //                     |  |  |  |
-    #define NR_SLAVES    { 5, 5, 0, 0}
-    #define ADC_TYPE     { 0xffff, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
-                                            // bit 0 fuer slave module 0
-                                            // bit n fuer slave module n (max n = 31)
-
-    #define POLARITY {0x00000000, 0x0000ffff, 0x00000000, 0x00000000}
-    // for max. 32 FEBEX per SFP, each bit represents a FEBEX
-    //  0: positive signals, 1 negative signals
-#endif
-
-#define BASE_LINE_SUBT_START  0
-#define BASE_LINE_SUBT_SIZE   20
-
-#ifdef BIBOX
-    #define BIBOX_N_GAP  200
-    #define BIBOX_N_AVG  100
-#endif // BIBOX
-
-#ifdef MWD
-    #define MWD_WIND    400      // difference length, i.e. width of moving window
-    #define MWD_AVG     300      // integration length, i.e. width of low-pass filter. NB: MWD_WIND must be bigger than MWD_AVG
-    //#define MWD_TAU    1538   // decay constant for pole-zero correction. now defined on line 189 of TPLEIADESRawProc.cxx due to multiple values needed
-    #define MWD_SAMP    570     // sampling point, i.e. bin from which filter is sampled. Should be within the flat top, which ends at MWD_WIND + MWD_AVG.
-#endif // MWD
-
-#define RON  "\x1B[7m"
-#define RES  "\x1B[0m"
+//#define NIK_EXTRA_HISTS 1   // toggle to remove Nik's extra histogram
+//#define DEC_CONST_FIT 1     // toggle if preamp decay constants are fitted
+//
+////#define ADC_RES            2000./16384.   // res in mV: +/-1V range by 14-bit ADC
+//#define ADC_RES            4000./16384.   // res in mV: +/-2V range by 14-bit ADC
+//
+//#ifdef USE_MBS_PARAM
+//    #define MAX_TRACE_SIZE   8000   // in samples
+//    #define MAX_BIBOX_N_AVG  2000   // in samples
+//#else
+//    #define     TRACE_SIZE    3000   // in samples 1024
+//    #define MAX_TRACE_SIZE TRACE_SIZE // JAM 26-03-25
+//    //#define     BIBOX_N_AVG    64   // in samples
+//    // nr of slaves on SFP 0  1  2  3
+//    //                     |  |  |  |
+//    #define NR_SLAVES    { 5, 5, 0, 0}
+//    #define ADC_TYPE     { 0xffff, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
+//                                            // bit 0 fuer slave module 0
+//                                            // bit n fuer slave module n (max n = 31)
+//
+//    #define POLARITY {0x00000000, 0x0000ffff, 0x00000000, 0x00000000}
+//    // for max. 32 FEBEX per SFP, each bit represents a FEBEX
+//    //  0: positive signals, 1 negative signals
+//#endif
+//
+//#define BASE_LINE_SUBT_START  0
+//#define BASE_LINE_SUBT_SIZE   20
+//
+//#ifdef BIBOX
+//    #define BIBOX_N_GAP  200
+//    #define BIBOX_N_AVG  100
+//#endif // BIBOX
+//
+//#ifdef MWD
+//    #define MWD_WIND    400      // difference length, i.e. width of moving window
+//    #define MWD_AVG     300      // integration length, i.e. width of low-pass filter. NB: MWD_WIND must be bigger than MWD_AVG
+//    //#define MWD_TAU    1538   // decay constant for pole-zero correction. now defined on line 189 of TPLEIADESRawProc.cxx due to multiple values needed
+//    #define MWD_SAMP    570     // sampling point, i.e. bin from which filter is sampled. Should be within the flat top, which ends at MWD_WIND + MWD_AVG.
+//#endif // MWD
+//
+//#define RON  "\x1B[7m"
+//#define RES  "\x1B[0m"
 
 class TPLEIADESParam;
 class TH1;
@@ -112,6 +114,8 @@ class TPLEIADESRawProc : public TGo4EventProcessor
         /** reference to output data **/
         TPLEIADESRawEvent* fOutEvent;  //!
 
+        std::map<UInt_t, TGo4EventProcessor*> fSubProcs; //! subprocessors for different crates, indexed by subsystem id
+
         /** parameter for runtime settings **/
         TPLEIADESParam* fPar;
 #ifdef WR_TIME_STAMP
@@ -122,34 +126,35 @@ class TPLEIADESRawProc : public TGo4EventProcessor
         TH1*  h_wr_delta_t;
         TH1* h_wr_subsystemid;
 #endif
-        TH1  *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_trace_blr_fit [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_fpga_e       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_bibox_fpga   [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        #ifdef BIBOX
-        TH1  *h_corr_e_fpga_bibox [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_bibox_f      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_bibox_e      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        #endif // BIBOX
-        #ifdef MWD
-        TH1  *h_mwd_d        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_mwd_c        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_mwd_i        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_mwd_e        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        #endif // MWD
-        #ifdef NIK_EXTRA_HISTS
-        TH1  *h_trgti_hitti  [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_ch_hitpat    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_hitpat       [MAX_SFP][MAX_SLAVE];         //!
-        TH1  *h_ch_hitpat_tr [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_hitpat_tr    [MAX_SFP][MAX_SLAVE];         //!
-        TH1  *h_ch_hitpat_di [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_hitpat_di    [MAX_SFP][MAX_SLAVE];         //!
-        TH1  *h_peak         [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_valley       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        TH1  *h_adc_spect    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        #endif // NIK_EXTRA_HISTS
+        // histograms in subprocessors
+//        TH1  *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_trace_blr_fit [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_fpga_e       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_bibox_fpga   [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        #ifdef BIBOX
+//        TH1  *h_corr_e_fpga_bibox [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_bibox_f      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_bibox_e      [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        #endif // BIBOX
+//        #ifdef MWD
+//        TH1  *h_mwd_d        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_mwd_c        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_mwd_i        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_mwd_e        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        #endif // MWD
+//        #ifdef NIK_EXTRA_HISTS
+//        TH1  *h_trgti_hitti  [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_ch_hitpat    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_hitpat       [MAX_SFP][MAX_SLAVE];         //!
+//        TH1  *h_ch_hitpat_tr [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_hitpat_tr    [MAX_SFP][MAX_SLAVE];         //!
+//        TH1  *h_ch_hitpat_di [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_hitpat_di    [MAX_SFP][MAX_SLAVE];         //!
+//        TH1  *h_peak         [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_valley       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        TH1  *h_adc_spect    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+//        #endif // NIK_EXTRA_HISTS
 
     ClassDef(TPLEIADESRawProc,1)
 };
