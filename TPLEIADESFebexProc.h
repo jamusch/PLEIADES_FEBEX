@@ -29,7 +29,7 @@ class TGo4MbsSubEvent;
 // comment out define statements to turn on/off
 
 // JAM 3-2025: configuration of trigger types of combined system
-#define TRIGGER_TYPE_FEBEX 3
+#define TRIGGER_TYPE_FEBEX 1
 #define TRIGGER_TYPE_VME 1
 
 
