@@ -601,7 +601,8 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
                     fitFunc->SetParameters(2e3, 1e-3);
                     h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->Fit("expoFitFunc", "Q", "", 900, 2995);
                     TF1 *fitDecayConst = h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetFunction("expoFitFunc");
-                    Double_t fitTau = fitDecayConst->GetParameter(1);
+                    Double_t fitTau =0;
+                    if(fitDecayConst) fitTau = fitDecayConst->GetParameter(1);
                     h_trace_blr_fit[l_sfp_id][l_feb_id][l_cha_id]->Fill(fitTau);
                     //std::cout << std::endl;
                     #endif // DEC_CONST_FIT
