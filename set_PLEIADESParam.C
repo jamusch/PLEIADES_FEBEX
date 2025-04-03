@@ -180,4 +180,6 @@ void set_PLEIADESParam()
        param0->fCrystalMap[sBPname2][0] = 0x03E;         // BP pin1 goes to card 3, ch 12
        param0->fCrystalMap[sBPname2][1] = 0x03F;         // BP pin2 goes to card 3, ch 13
 
+       param0->fTraceSize = 3000; // JAM 3-04-25: need to set it here, since we do not original unpacker that sets it automatically!
+
 }

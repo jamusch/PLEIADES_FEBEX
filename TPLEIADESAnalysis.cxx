@@ -19,6 +19,7 @@
 #include "TGo4StepFactory.h"
 #include "TGo4AnalysisStep.h"
 
+#include "TPLEIADESParam.h"
 
 //------------------------------------------------------------------------
 TPLEIADESAnalysis::TPLEIADESAnalysis() : TGo4Analysis()
@@ -41,7 +42,8 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
 
     // Create step 1: Raw Event unpacking
     TGo4StepFactory* factory1 = new TGo4StepFactory("Raw Unpacking Factory");
-    factory1->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");   // object name, class name
+    //factory1->DefEventProcessor("PLEIADESRawProc","TPLEIADESRawProc");   // object name, class name
+    factory1->DefEventProcessor("Go4ElderProc","TGo4ElderProc");// object name, class name replace by generic elder proc
     factory1->DefOutputEvent("PLEIADESRawEvent","TPLEIADESRawEvent");    // object name, class name
 
     Text_t lmdfile[512]= "/home/litv-exp/2022_beavertail/lmd/run0010.lmd";
@@ -83,6 +85,12 @@ TPLEIADESAnalysis::TPLEIADESAnalysis(int argc, char **argv) :
     step2->SetProcessEnabled(kTRUE);
     step2->SetErrorStopEnabled(kTRUE);
     AddAnalysisStep(step3);
+
+    // here parameter instead of first step processor (not existing for elder case..):
+    TGo4Log::Info("TPLEIADESAnalysis: creating parameter");
+    TPLEIADESParam* par = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
+    if(par) { par->SetConfigBoards(); }
+
 
     // uncomment following line to define custom passwords for analysis server
     // DefineServerPasswords("PLEIADESadmin", "PLEIADESctrl", "PLEIADESview");
