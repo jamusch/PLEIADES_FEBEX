@@ -102,7 +102,7 @@ class TPLEIADESFebexProc : public TGo4EventProcessor
         void f_make_histo (Int_t);
 
         /** event processing function **/
-        Bool_t BuildSubEvent(TGo4MbsSubEvent* psub, size_t off, TPLEIADESRawEvent* target);
+        Bool_t BuildSubEvent(TGo4MbsSubEvent* psub, size_t off, UInt_t triggertype, TPLEIADESRawEvent* target);
 
     private:
         /** reference to output data **/
