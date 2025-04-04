@@ -253,7 +253,7 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, U
 
     // JAM 04-04-2025: check if we really have trace info
     if((l_trig_type_triva!=1) && (l_first == 0)) {
-      printf("Trigger type %d at beginning, do not build histograms! \n");
+      printf("Trigger type %d at beginning, do not build histograms! \n",l_trig_type_triva);
       return kTRUE;
     }
 
