@@ -408,8 +408,8 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, U
                         if(l_more_than_1_hit_in_cha == 1)   // more than 1 hit, print alert but don't read data
                         {
                             l_more_1_hit_ct++;
-                            printf ("%d More than 1 hit found for SFP: %d FEBEX: %d CHA: %d:: %d \n", l_more_1_hit_ct, l_sfp_id, l_feb_id, l_hit_cha_id, l_n_hit_in_cha);
-                            fflush (stdout);
+//                            printf ("%d More than 1 hit found for SFP: %d FEBEX: %d CHA: %d:: %d \n", l_more_1_hit_ct, l_sfp_id, l_feb_id, l_hit_cha_id, l_n_hit_in_cha);
+//                            fflush (stdout);
                         }
 
                         if((l_more_than_1_hit_in_cha == 1) && (l_only_one_hit_in_cha == 1)) // nonsense edge case
