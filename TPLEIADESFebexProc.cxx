@@ -898,7 +898,8 @@ void TPLEIADESFebexProc::f_make_histo(Int_t l_mode)
     //UInt_t l_right;
 
     #ifdef USE_MBS_PARAM
-    l_tra_size   = l_trace & 0xffff;
+    l_tra_size   = l_trace & 0xffff; // disabled JAM25
+
     l_trap_n_avg = l_e_filt >> 21;
     printf ("f_make_histo: trace size: %d, avg size %d \n", l_tra_size, l_trap_n_avg);
     fflush (stdout);
@@ -909,13 +910,16 @@ void TPLEIADESFebexProc::f_make_histo(Int_t l_mode)
     printf ("f_make_histo: # of sfp slaves: 3:%d, 2:%d, 1: %d, 0: %d \n", l_sfp_slaves[3], l_sfp_slaves[2], l_sfp_slaves[1], l_sfp_slaves[0]);
     fflush (stdout);
     #else
-    l_tra_size   = TRACE_SIZE;
+    //l_tra_size   = TRACE_SIZE;
     l_trap_n_avg = BIBOX_N_AVG;
     #endif // USE_MBS_PARAM
 
 
     // set trace size value in parameter
-    fPar->fTraceSize = l_tra_size;
+    //fPar->fTraceSize = l_tra_size;
+    // JAM 4-4-25: do not do this, instead always user defined trace sizes!
+    l_tra_size=fPar->fTraceSize;
+    printf ("f_make_histo: override trace size from parameter with: %d\n", l_tra_size);
 
     if(l_first2 == 0)
     {

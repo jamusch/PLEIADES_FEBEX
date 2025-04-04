@@ -271,12 +271,12 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
 
     // MBS allows for multiple subevents. We don't use sub events, so machinery has been removed for brevity.
     // See TFeb3Full example or CsISiPHOS_FEBEX setup from N. Kurz for sub event machinery.
-    TGo4MbsSubEvent* psubevt;
+    //TGo4MbsSubEvent* psubevt;
 
     source->ResetIterator();
 
     // JAM25: scan all subevents here:
-     while (psubevt = source->NextSubEvent()) // subevent loop
+     while (auto psubevt = source->NextSubEvent()) // subevent loop
      {
 
        //if( psubevt->GetSubcrate() == 0)

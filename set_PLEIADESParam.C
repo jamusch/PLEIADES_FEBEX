@@ -179,5 +179,5 @@ void set_PLEIADESParam()
      param0->fCrystalMap[sBPname2][0] = 0x13E;  // BP pin1 goes to card 3, ch 12
      param0->fCrystalMap[sBPname2][1] = 0x13F;  // BP pin2 goes to card 3, ch 13
 
-     param0->fTraceSize = 3000;
+     param0->fTraceSize = 2000;
 }
