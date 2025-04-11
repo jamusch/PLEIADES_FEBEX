@@ -137,6 +137,13 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
             for(int j=0; j<7; ++j)
             {
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j); // get detector channel
+                // JAM 3-2025: catch any wrongly mapped channels here
+                if(theDetChan==0) {
+                    TGo4Log::Warn("warning: detector channel %d of detector %s not mapped \n",j,dname.Data());//std::cout<<std::endl;
+                    continue;
+                }
+
+
                 TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName()); // get chan display associated with channel
 
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);          // bitwise AND to select last bits where channel location is
@@ -303,6 +310,13 @@ Bool_t TPLEIADESDetProc::BuildEvent(TGo4EventElement* target)
                 TPLEIADESFebBoard *cBoard = RawEvent->GetBoard(cBoardID);   // get board from input event with board location
 
                 TPLEIADESDetChan *theDetChan = theDetector->GetChannel(j);
+                // JAM 3-2025: catch any wrongly mapped channels here
+                if(theDetChan==0) {
+                    TGo4Log::Warn("warning: detector channel %d of detector %s not mapped \n",j,dname.Data());//std::cout<<std::endl;
+                    continue;
+                }
+
+
                 TPLEIADESChanDisplay *chanDisplay = detDisplay->GetChanDisplay(theDetChan->GetName());
 
                 rawChPos = (theDetChan->GetChanMap() & 0x00F);              // bitwise AND to select last bits where channel location is

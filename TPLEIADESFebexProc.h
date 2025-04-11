@@ -29,7 +29,7 @@ class TGo4MbsSubEvent;
 // comment out define statements to turn on/off
 
 // JAM 3-2025: configuration of trigger types of combined system
-#define TRIGGER_TYPE_FEBEX 3
+#define TRIGGER_TYPE_FEBEX 1
 #define TRIGGER_TYPE_VME 1
 
 
@@ -102,7 +102,7 @@ class TPLEIADESFebexProc : public TGo4EventProcessor
         void f_make_histo (Int_t);
 
         /** event processing function **/
-        Bool_t BuildSubEvent(TGo4MbsSubEvent* psub, size_t off, TPLEIADESRawEvent* target);
+        Bool_t BuildSubEvent(TGo4MbsSubEvent* psub, size_t off, UInt_t triggertype, TPLEIADESRawEvent* target);
 
     private:
         /** reference to output data **/

@@ -6,6 +6,9 @@ include $(GO4SYS)/Makefile.config
 
 ## normally should be like this for every module, but can be specific
 
+DOOPTIMIZATION = false
+
+
 ELDERLIBPATH = $(ELDERSYS)/lib64
 ELDERINCPATH = $(ELDERSYS)/include
 

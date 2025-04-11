@@ -312,7 +312,7 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     traceBLR = theDetChan->fDTraceBLR;
     if(trace.size() == 0) { //TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace integral requested but trace is empty, skipping!");
     return; }
-    else if(trace.size() != 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace is not 3000 bins, skipping!");
+    else if(trace.size() != fPar->fTraceSize) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - trace is not %d bins, skipping!",fPar->fTraceSize);
     return; }
 
     Short_t startRise, startInt, stopInt;
@@ -329,9 +329,12 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     // msg to check leading edge value //TGo4Log::Info("TPLEIADESPhysProc::PulseShapeIntegration - Event num %d leading edge was %d", fInEvent->fSequenceNumber, startRise);
 
     // set start/stop for integrals
-    if(startRise < 0) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - startRise is negative so leading edge not found, skipping!"); return; }
+    if(startRise < 0) {
+        //TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - startRise is negative so leading edge not found, skipping!");
+        return;
+    }
     startInt = startRise+900;  stopInt = startRise+2800;
-    if(stopInt > 3000) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - stopInt > trace length, skipping!"); return; }
+    if(stopInt > fPar->fTraceSize) { TGo4Log::Warn("TPLEIADESPhysProc::PulseShapeIntegration - stopInt > trace length, skipping!"); return; }
 
     Double_t  sumIntegral;//, fitIntegral;
     // evaluate summing integral
@@ -340,7 +343,7 @@ void TPLEIADESPhysProc::PulseShapeIntegration(TPLEIADESDetChan *theDetChan, TPLE
     /**
     // evaluate fitting integral
     TH1 *traceBLRHist = fInEvent->fDetDisplays[theDetChan->GetDetId()]->GetChanDisplay(theDetChan->GetName())->hTraceBLRChan;
-    TF1 *expFunc = new TF1("expFunc", "[0]*exp(-[1]*x)", 0, 3000);
+    TF1 *expFunc = new TF1("expFunc", "[0]*exp(-[1]*x)", 0, fPar->fTraceSize);
     traceBLRHist->Fit(expFunc, "WCQF0+", "", startInt, stopInt);
     TF1 *fittedFunc = dynamic_cast<TF1*>(traceBLRHist->GetListOfFunctions()->FindObject("expFunc"));
     fitIntegral = fittedFunc->Integral(startInt, stopInt);
@@ -703,7 +706,7 @@ void TPLEIADESPhysProc::ExpIntegPHRecon()
             {
                 consStart = startRise+900;  stopInt = startRise+2800;
                 indivStart = startRise + indivClipLen[nsideCnt];
-                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                if(stopInt>fPar->fTraceSize) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
                 consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
                 indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
                 fPhysDisplay->hExpIntegNSides[nsideCnt][0]->Fill(consInteg);
@@ -729,7 +732,7 @@ void TPLEIADESPhysProc::ExpIntegPHRecon()
             {
                 consStart = startRise+900;  stopInt = startRise+2800;
                 indivStart = startRise + indivClipLen[6];
-                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                if(stopInt>fPar->fTraceSize) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
                 consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
                 indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
                 fPhysDisplay->hExpIntegCrysFr[0]->Fill(consInteg);
@@ -752,7 +755,7 @@ void TPLEIADESPhysProc::ExpIntegPHRecon()
             {
                 consStart = startRise+900;  stopInt = startRise+2800;
                 indivStart = startRise + indivClipLen[7];
-                if(stopInt>3000) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
+                if(stopInt>fPar->fTraceSize) { TGo4Log::Info("TPLEIADESPhysProc::ExpIntegPHRecon - stopInt > trace length!"); continue; }
                 consInteg = std::accumulate(traceBLR.begin()+consStart, traceBLR.begin()+stopInt, 0);
                 indivInteg = std::accumulate(traceBLR.begin()+indivStart, traceBLR.begin()+stopInt, 0);
                 fPhysDisplay->hExpIntegCrysBk[0]->Fill(consInteg);

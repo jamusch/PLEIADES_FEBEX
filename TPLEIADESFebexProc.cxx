@@ -82,7 +82,7 @@ TPLEIADESFebexProc::~TPLEIADESFebexProc()
 //------------------------------------------------------------------------
 // Build event is the unpacker function, it reads the MBS event and does stuff with it.
 // Histograms are erased with the next word, so are mostly used for online analysis.
-Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, TPLEIADESRawEvent* target)
+Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, UInt_t triggertype, TPLEIADESRawEvent* target)
 {
   Bool_t isValid=kFALSE;
 
@@ -221,6 +221,8 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
 
        //if( psubevt->GetSubcrate() == 0)
 
+    l_trig_type_triva=triggertype; // get it from main processor
+
     // next we extract data word for subevent and prepare properties
     // GetDataField is pointer to subevent data. pl_tmp++ increments pointer to next word in stream.
     pl_se_dat = (uint32_t *)psubevt->GetDataField();
@@ -247,6 +249,13 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
         l_pola[l_i] = *pl_tmp++;
     }
     #endif // USE_MBS_PARAM
+
+
+    // JAM 04-04-2025: check if we really have trace info
+    if((l_trig_type_triva!=1) && (l_first == 0)) {
+      printf("Trigger type %d at beginning, do not build histograms! \n",l_trig_type_triva);
+      return kTRUE;
+    }
 
     //------------------------------------------------------------------------
     // for first event, make histograms
@@ -601,7 +610,8 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, T
                     fitFunc->SetParameters(2e3, 1e-3);
                     h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->Fit("expoFitFunc", "Q", "", 900, 2995);
                     TF1 *fitDecayConst = h_trace_blr[l_sfp_id][l_feb_id][l_cha_id]->GetFunction("expoFitFunc");
-                    Double_t fitTau = fitDecayConst->GetParameter(1);
+                    Double_t fitTau =0;
+                    if(fitDecayConst) fitTau = fitDecayConst->GetParameter(1);
                     h_trace_blr_fit[l_sfp_id][l_feb_id][l_cha_id]->Fill(fitTau);
                     //std::cout << std::endl;
                     #endif // DEC_CONST_FIT
