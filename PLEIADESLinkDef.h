@@ -41,7 +41,8 @@
 #pragma link C++ class TPLEIADESDetDisplay+;
 #pragma link C++ class TPLEIADESChanDisplay+;
 #pragma link C++ class TPLEIADESPhysDisplay+;
-
+#pragma link C++ class std::map<TString, std::array<UInt_t,4>>;
+#pragma link C++ class std::map<TString, std::array<UInt_t,2>>;
 #endif
 
 

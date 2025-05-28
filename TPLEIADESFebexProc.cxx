@@ -800,7 +800,7 @@ Bool_t TPLEIADESFebexProc::BuildSubEvent(TGo4MbsSubEvent* psubevt, size_t off, U
             {
                 //get board ID at array position from Go4 parameter fBoardID
                 UInt_t brdID = fPar->fBoardID[fID][l_i][l_j];
-                //printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID);
+                //printf("board ID fetched for sfp %i, slv %i was %d\n", l_i, l_j, brdID); std::cout<<std::endl;
 
                 TPLEIADESFebBoard* theBoard = fOutEvent->GetBoard(brdID);
                 if(theBoard==0)

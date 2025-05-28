@@ -55,14 +55,20 @@ using namespace std;
 //static UInt_t    l_first2 = 0;
 
 //------------------------------------------------------------------------
-TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc"),fWR_SubsystemID(0), fWR_Timestamp(0), fWR_Timestamp_prev(0), fWR_delta_t(0)
+TPLEIADESRawProc::TPLEIADESRawProc() : TGo4EventProcessor("Proc")
+#ifdef WR_TIME_STAMP
+,fWR_SubsystemID(0), fWR_Timestamp(0), fWR_Timestamp_prev(0), fWR_delta_t(0)
+#endif
 {
     TGo4Log::Info("TPLEIADESRawProc: Create instance ");
 }
 
 //------------------------------------------------------------------------
 // this one is used in standard factory
-TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name),fWR_SubsystemID(0), fWR_Timestamp(0), fWR_Timestamp_prev(0), fWR_delta_t(0)
+TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name)
+#ifdef WR_TIME_STAMP
+,fWR_SubsystemID(0), fWR_Timestamp(0), fWR_Timestamp_prev(0), fWR_delta_t(0)
+#endif
 {
     TGo4Log::Info("**** TPLEIADESRawProc: Create instance %s", name);
     fPar = dynamic_cast<TPLEIADESParam*>(MakeParameter("PLEIADESParam", "TPLEIADESParam", "set_PLEIADESParam.C"));
@@ -91,14 +97,24 @@ TPLEIADESRawProc::TPLEIADESRawProc(const char* name) : TGo4EventProcessor(name),
 
 
 #endif
+
+
+
       TString nm;
+
+#ifdef WR_TIME_STAMP
       nm.Form("%x",SUB_SYSTEM_ID_FEB1);
       fSubProcs[SUB_SYSTEM_ID_FEB1]= new TPLEIADESFebexProc(nm.Data(), (SUB_SYSTEM_ID_FEB1/0x100) -1);
       nm.Form("%x",SUB_SYSTEM_ID_FEB2);
       fSubProcs[SUB_SYSTEM_ID_FEB2]= new TPLEIADESFebexProc(nm.Data(), (SUB_SYSTEM_ID_FEB2/0x100) -1);
       //nm.Form("%d_",SUB_SYSTEM_ID_VME);
       //fSubProcs[SUB_SYSTEM_ID_VME]= new TPLEIADESVmeProc(nm.Data()); // TODO for optional scaler display in different unpacker class
-
+#else
+    // for systems without white rabbit, we may put here some MBS subevent ids later and define subprocessor for each
+    // for current setup there is only one subevent, we use arbitrary index 0
+     nm.Form("%x",0);
+     fSubProcs[0]= new TPLEIADESFebexProc(nm.Data(), 0);
+#endif
 
 
 
@@ -276,6 +292,7 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     source->ResetIterator();
 
     // JAM25: scan all subevents here:
+    UInt_t subid=0; // default if we don't use white rabbit components JAM 28-05-25
      while (auto psubevt = source->NextSubEvent()) // subevent loop
      {
 
@@ -305,10 +322,12 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
         goto bad_event;
     }
 
+
     // checks WR time stamp. 5 first 32 bits must be white rabbit time stamp
     #ifdef WR_TIME_STAMP
     // JAM 27-03-25: get statistics of subsystems here
     fWR_SubsystemID = *pl_tmp++;
+    subid=fWR_SubsystemID;
     h_wr_subsystemid->Fill(fWR_SubsystemID/0x100 -1 );
 
 
@@ -356,21 +375,22 @@ Bool_t TPLEIADESRawProc::BuildEvent(TGo4EventElement* target)
     #endif // WR_TIME_STAMP
 
 
-        TPLEIADESFebexProc* subproc = dynamic_cast< TPLEIADESFebexProc*>(fSubProcs[fWR_SubsystemID]);
+
+        TPLEIADESFebexProc* subproc = dynamic_cast< TPLEIADESFebexProc*>(fSubProcs[subid]); // subid is fWR_SubsystemID if used. otherwise subevent index beginning with 1
         if(subproc) {
 
 
-          //printf("WWWWWW using FEBEX subsystem id 0x%x, trigger:%d \n",fWR_SubsystemID, l_trig_type_triva); fflush (stdout);
+          //printf("WWWWWW using FEBEX subsystem id 0x%x, trigger:%d \n",subid, l_trig_type_triva); fflush (stdout);
           size_t offset= (char*)(pl_tmp)- (char*) (pl_se_dat);
           if(!subproc->BuildSubEvent(psubevt,offset, l_trig_type_triva, fOutEvent)) goto bad_event;
         }
         else
         {
-          //printf("WWWWWW no unpacker for subsystem id 0x%x, trigger:%d \n",fWR_SubsystemID, l_trig_type_triva); fflush (stdout);
+          //printf("WWWWWW no unpacker for subsystem id 0x%x, trigger:%d \n",subid, l_trig_type_triva); fflush (stdout);
         }
 
 
-
+        subid++; // we begin with index 0 for first subevent if no wr system id is given. any other subevents require next indices
  } // while subevents
 
       fOutEvent->SetValid(isValid);

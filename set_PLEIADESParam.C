@@ -29,12 +29,13 @@ void set_PLEIADESParam()
     param0->fBoardID[0][1][1] = 0x11;
     param0->fBoardID[0][1][2] = 0x12;
     param0->fBoardID[0][1][3] = 0x13;
-  //  param0->fBoardID[0][1][4] = 0x14;
+    param0->fBoardID[0][1][4] = 0x14;
 
     param0->fBoardID[1][1][0] = 0x00;
     param0->fBoardID[1][1][1] = 0x01;
     param0->fBoardID[1][1][2] = 0x02;
     param0->fBoardID[1][1][3] = 0x03;
+
 
     //------------------------------------------------------------------------
     // set Detector IDs here. NB: using operator[] overwrites map entry. Ensure no duplicate keys (ie det names)!
